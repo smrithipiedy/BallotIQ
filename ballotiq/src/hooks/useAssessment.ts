@@ -7,7 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import type { AssessmentAnswer, AssessmentPhase, KnowledgeLevel, UserContext } from '@/types';
-import { analyzeAssessment } from '@/lib/gemini/operations';
+import { analyzeAssessment } from '@/lib/gemini/client';
 import { saveUserContext } from '@/lib/firebase/firestore';
 import { authReady } from '@/lib/firebase/client';
 import { logAssessmentComplete } from '@/lib/firebase/analytics';

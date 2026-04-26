@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ElectionStep, QuizPhase, QuizQuestion, QuizResult, UserContext } from '@/types';
-import { generatePersonalizedQuiz } from '@/lib/gemini/operations';
+import { generatePersonalizedQuiz } from '@/lib/gemini/client';
 
 interface UseQuizReturn {
   questions: QuizQuestion[];

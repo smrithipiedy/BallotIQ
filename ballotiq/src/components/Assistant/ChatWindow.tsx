@@ -9,7 +9,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Mic, MicOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import type { ChatMessage, ElectionStep, UserContext } from '@/types';
-import { getAssistantResponse } from '@/lib/assistant/hybridAssistant';
+import { askAssistant } from '@/lib/gemini/client';
 import { saveChatMessage } from '@/lib/firebase/firestore';
 import { logAssistantQuestion } from '@/lib/firebase/analytics';
 import { sanitizeUserInput } from '@/lib/security/sanitize';
@@ -77,7 +77,7 @@ export default function ChatWindow({
       await saveChatMessage(userContext.sessionId, userMsg);
       await logAssistantQuestion(userContext.countryCode, userContext.knowledgeLevel);
 
-      const response = await getAssistantResponse(sanitized, userContext, completedSteps, messages);
+      const response = await askAssistant(sanitized, userContext, completedSteps, messages);
 
       const assistantMsg: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
@@ -164,7 +164,7 @@ export default function ChatWindow({
                   ? 'bg-blue-600 text-white rounded-tr-sm shadow-xl shadow-blue-500/10'
                   : 'bg-white/[0.03] border border-white/5 text-gray-200 rounded-tl-sm'
               }`}>
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <p className="whitespace-pre-wrap"><TranslatedText text={msg.content} /></p>
                 {msg.role === 'assistant' && (
                   <div className="mt-3">
                     <TTSButton text={msg.content} isSpeaking={isSpeaking} currentText={currentSpokenText} onToggle={onSpeak} />

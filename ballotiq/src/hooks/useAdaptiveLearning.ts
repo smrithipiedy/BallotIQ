@@ -8,7 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import type { ElectionStep, UserContext } from '@/types';
-import { reExplainConcept } from '@/lib/gemini/operations';
+import { reExplainConcept } from '@/lib/gemini/client';
 import { saveUserContext } from '@/lib/firebase/firestore';
 import { logAdaptationTriggered } from '@/lib/firebase/analytics';
 
@@ -24,7 +24,6 @@ interface UseAdaptiveLearningReturn {
   handleMicroQuizResult: (correct: boolean, step: ElectionStep, userAnswer: string, correctAnswer: string) => Promise<void>;
   moveToNextStep: () => void;
   setCurrentStepIndex: (index: number) => void;
-  triggerAdaptation: () => void;
 }
 
 /**
@@ -90,18 +89,15 @@ export function useAdaptiveLearning(
   }, [consecutiveErrors, adaptationActive, userContext, currentStepIndex]);
 
   const moveToNextStep = useCallback(() => {
-    setCurrentStepIndex(prev => prev + 1);
-    setReExplanation(null);
-  }, []);
-
-  const triggerAdaptation = useCallback(() => {
-    setAdaptationActive(true);
-  }, []);
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+      setReExplanation(null);
+    }
+  }, [currentStepIndex, steps.length]);
 
   return {
     currentStepIndex, adaptationActive, consecutiveErrors,
     reExplanation, isReExplaining,
     handleMicroQuizResult, moveToNextStep, setCurrentStepIndex,
-    triggerAdaptation
   };
 }

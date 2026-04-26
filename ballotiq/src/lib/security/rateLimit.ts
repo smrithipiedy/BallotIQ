@@ -12,7 +12,7 @@ import type { RateLimitState } from '@/types';
 
 /** Daily API call limits per service */
 const DAILY_LIMITS = {
-  gemini: 40,
+  gemini: 100,
   translate: 100,
   tts: 50,
 } as const;

@@ -11,10 +11,6 @@ import { LANGUAGES } from '@/lib/constants/languages';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { SupportedLanguage } from '@/types';
 
-interface LanguageSelectorProps {
-  className?: string;
-}
-
 /** Premium custom dropdown for switching between 8 supported languages */
 export default function LanguageSelector({ className = '' }: LanguageSelectorProps) {
   const { language, setLanguage } = useTranslation();

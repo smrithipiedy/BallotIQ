@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { ElectionStep, MicroQuizQuestion, UserContext } from '@/types';
-import { generateMicroQuiz } from '@/lib/gemini/operations';
+import { generateMicroQuiz } from '@/lib/gemini/client';
 
 interface UseMicroQuizReturn {
   question: MicroQuizQuestion | null;

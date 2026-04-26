@@ -6,10 +6,10 @@
 import { renderHook, act } from '@testing-library/react';
 import { useAdaptiveLearning } from '@/hooks/useAdaptiveLearning';
 import type { UserContext, ElectionStep } from '@/types';
-import * as operations from '@/lib/gemini/operations';
+import * as geminiClient from '@/lib/gemini/client';
 
-// Mock gemini operations
-jest.mock('@/lib/gemini/operations', () => ({
+// Mock gemini client
+jest.mock('@/lib/gemini/client', () => ({
   reExplainConcept: jest.fn().mockResolvedValue('Simplified explanation from AI'),
 }));
 
@@ -95,7 +95,7 @@ describe('useAdaptiveLearning', () => {
   });
 
   it('calls reExplainConcept on failure', async () => {
-    const spy = jest.spyOn(operations, 'reExplainConcept');
+    const spy = jest.spyOn(geminiClient, 'reExplainConcept');
     const { result } = renderHook(() => useAdaptiveLearning(mockContext, mockSteps));
     
     await act(async () => {

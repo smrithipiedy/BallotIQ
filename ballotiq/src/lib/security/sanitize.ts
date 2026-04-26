@@ -61,6 +61,7 @@ export function sanitizeAIResponse(response: string): string {
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
     .replace(/<[^>]*>/g, '')
+    .replace(/\*/g, '') // Strip asterisks (markdown bold/italic) for cleaner text
     .substring(0, MAX_AI_RESPONSE_LENGTH)
     .trim();
 }

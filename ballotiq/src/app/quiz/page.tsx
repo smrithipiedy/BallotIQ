@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import type { ElectionStep, UserContext } from '@/types';
 import { useQuiz } from '@/hooks/useQuiz';
-import { generatePerformanceInsight } from '@/lib/gemini/operations';
+import { generatePerformanceInsight } from '@/lib/gemini/client';
 import { logQuizComplete } from '@/lib/firebase/analytics';
 import { getFallbackGuide } from '@/lib/gemini/fallback';
 import QuizCard from '@/components/Quiz/QuizCard';
@@ -61,7 +61,8 @@ export default function QuizPage() {
     if (phase === 'complete' && userContext && results.length > 0) {
       logQuizComplete(score, questions.length, userContext.countryCode);
       generatePerformanceInsight(
-        results, questions, userContext.knowledgeLevel
+        results, questions, userContext.knowledgeLevel,
+        userContext.countryCode, userContext.sessionId
       ).then(setInsight);
     }
   }, [phase, userContext, results, score, questions]);

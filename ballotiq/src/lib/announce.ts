@@ -1,8 +1,6 @@
 /**
  * Accessibility announcer for screen readers.
- * Use this to announce dynamic content changes (e.g. results loading, errors).
- * 
- * @param message - The text to be announced to the screen reader.
+ * Use this to announce dynamic content changes.
  */
 export function announce(message: string): void {
   if (typeof document === 'undefined') return;

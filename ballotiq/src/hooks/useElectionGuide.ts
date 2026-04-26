@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { ElectionStep, LearningSource, UserContext } from '@/types';
-import { generatePersonalizedGuide } from '@/lib/gemini/operations';
+import { generatePersonalizedGuide } from '@/lib/gemini/client';
 import { getFallbackGuide } from '@/lib/gemini/fallback';
 
 interface UseElectionGuideReturn {

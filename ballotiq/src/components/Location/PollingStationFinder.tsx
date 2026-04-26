@@ -40,20 +40,22 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
           libraries: ['places'],
         });
 
-        const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
+        const { Map, InfoWindow } = await importLibrary('maps') as google.maps.MapsLibrary;
         const { Place, SearchNearbyRankPreference } = await importLibrary('places') as google.maps.PlacesLibrary;
         const { AdvancedMarkerElement, PinElement } = await importLibrary('marker') as google.maps.MarkerLibrary;
 
         if (cancelled || !mapRef.current) return;
 
         const position = await getCurrentPosition(country.code);
+        const infoWindow = new InfoWindow();
 
         const map = new Map(mapRef.current, {
           center: position,
           zoom: 14,
-          mapId: 'BALLOTIQ_MAP_ID', // Required for Advanced Markers
+          mapId: 'BALLOTIQ_MAP_ID',
           mapTypeControl: false,
           streetViewControl: false,
+          clickableIcons: false, // Disable clicks on standard POIs
           styles: [
             { elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
             { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
@@ -83,12 +85,12 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
         });
 
         // New Places API Search - Specific for election context
-        const searchTypes = country.code === 'IN' 
-          ? ['government_office', 'local_government_office', 'police'] // In India, some offices are in administrative buildings
+        const searchTypes = country.code === 'IN'
+          ? ['government_office', 'local_government_office', 'police']
           : ['government_office', 'local_government_office'];
 
         const request = {
-          fields: ['displayName', 'location', 'formattedAddress'],
+          fields: ['displayName', 'location', 'formattedAddress', 'id'],
           locationRestriction: {
             center: position,
             radius: 10000,
@@ -111,11 +113,28 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
                 scale: 0.8,
               });
 
-              new AdvancedMarkerElement({
+              const marker = new AdvancedMarkerElement({
                 position: place.location,
                 map,
                 title: place.displayName ?? 'Election Office',
                 content: officePin.element,
+              });
+
+              // Add click listener for InfoWindow
+              marker.addListener('click', () => {
+                const destination = encodeURIComponent(place.formattedAddress || place.displayName || '');
+                const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+
+                const contentString = `
+                  <div style="padding: 8px; color: #0f172a; font-family: sans-serif; max-width: 200px;">
+                    <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">${place.displayName}</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #475569;">${place.formattedAddress || 'Location nearby'}</p>
+                    <a href="${directionsUrl}" target="_blank" style="display: block; background: #2563eb; color: white; text-align: center; padding: 6px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 600;">Get Directions</a>
+                  </div>
+                `;
+
+                infoWindow.setContent(contentString);
+                infoWindow.open(map, marker);
               });
             }
           });
@@ -159,56 +178,66 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
 
   return (
     <ErrorBoundary componentName="PollingStationFinder">
-      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-blue-400" />
-              <TranslatedText text="Find Your Polling Station" />
+      <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[600px] rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000 group">
+        {/* Map instance */}
+        <div
+          ref={mapRef}
+          className="w-full h-full grayscale-[0.2] contrast-[1.1] brightness-[0.8] hover:grayscale-0 hover:brightness-100 transition-all duration-700"
+          aria-label="Map showing nearby polling stations"
+          role="application"
+        />
+
+        {/* Floating Header Overlay */}
+        <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pointer-events-none">
+          <div className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-950/70 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto">
+            <h3 className="text-sm sm:text-lg font-bold text-white flex items-center gap-2">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+              <TranslatedText text="Station Finder" />
             </h3>
-            <p className="text-xs text-gray-500">
-              <TranslatedText text="Showing nearby election offices and registration centers in" /> {country.name}
+            <p className="text-[9px] sm:text-[10px] text-gray-400 font-medium tracking-tight mt-0.5">
+              <TranslatedText text="Registration centers near you" />
             </p>
           </div>
+
           <a
             href={country.electionBodyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 border border-blue-600/20 text-blue-400 rounded-xl text-xs font-semibold hover:bg-blue-600/20 transition-all"
+            className="p-3 sm:px-6 sm:py-4 rounded-2xl sm:rounded-3xl bg-blue-600 text-white font-bold text-[10px] sm:text-xs flex items-center justify-center gap-2 hover:bg-blue-500 hover:scale-105 transition-all shadow-xl shadow-blue-600/20 pointer-events-auto"
           >
-            <TranslatedText text="Official Website" /> <ExternalLink className="w-3 h-3" />
+            <span className="whitespace-nowrap">
+              <TranslatedText text="Official page for" /> {country.name}
+            </span>
+            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
           </a>
         </div>
 
-        <div className="relative w-full h-[400px] sm:h-[500px] rounded-[2rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl">
-          <div
-            ref={mapRef}
-            className="w-full h-full"
-            aria-label="Map showing nearby polling stations"
-            role="application"
-          />
-          {!mapLoaded && !error && (
-            <div className="absolute inset-0 bg-[#0f172a] flex items-center justify-center z-10">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-gray-400 text-sm font-medium tracking-wide">
-                  <TranslatedText text="Scanning for election offices..." />
-                </p>
-              </div>
-            </div>
-          )}
+        {/* Legend Overlay */}
+        <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-950/70 backdrop-blur-xl border border-white/10 flex items-center gap-4 sm:gap-6 pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            <span className="text-[9px] sm:text-[10px] text-gray-300 font-bold uppercase tracking-wider">You</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+            <span className="text-[9px] sm:text-[10px] text-gray-300 font-bold uppercase tracking-wider">Election Office</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full" />
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Your Location</span>
+        {/* Loading Overlay */}
+        {!mapLoaded && !error && (
+          <div className="absolute inset-0 bg-gray-950/90 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                <div className="absolute inset-0 border-4 border-blue-400/10 rounded-full animate-pulse" />
+              </div>
+              <p className="text-gray-400 text-[10px] sm:text-xs font-bold tracking-widest uppercase">
+                <TranslatedText text="Scanning Area" />...
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Election Office</span>
-          </div>
-        </div>
+        )}
       </div>
     </ErrorBoundary>
   );
@@ -237,7 +266,3 @@ function getCurrentPosition(countryCode: string): Promise<{ lat: number; lng: nu
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => resolve(defaultPos),
-      { timeout: 5000 },
-    );
-  });
-}

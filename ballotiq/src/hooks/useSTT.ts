@@ -1,20 +1,5 @@
 'use client';
 
-interface SpeechRecognitionEvent {
-  resultIndex: number;
-  results: {
-    [key: number]: {
-      [key: number]: {
-        transcript: string;
-      };
-    };
-  };
-}
-
-interface SpeechRecognitionErrorEvent {
-  error: string;
-}
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
@@ -46,13 +31,13 @@ export function useSTT(language: string = 'en-US') {
       setError(null);
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const current = event.resultIndex;
       const resultTranscript = event.results[current][0].transcript;
       setTranscript(resultTranscript);
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       setError(event.error);
       setIsListening(false);
     };

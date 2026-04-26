@@ -25,24 +25,20 @@ class Logger {
     } @ ${timestamp}`;
   }
 
-  /** Logs a debug message (dev only) */
   debug(message: string, context?: LogContext): void {
     if (this.isDev) {
       console.debug(this.format('debug', message, context));
     }
   }
 
-  /** Logs an info message */
   info(message: string, context?: LogContext): void {
     console.info(this.format('info', message, context));
   }
 
-  /** Logs a warning */
   warn(message: string, context?: LogContext): void {
     console.warn(this.format('warn', message, context));
   }
 
-  /** Logs an error with stack trace */
   error(message: string, error?: unknown, context?: LogContext): void {
     console.error(this.format('error', message, context), error ?? '');
   }
