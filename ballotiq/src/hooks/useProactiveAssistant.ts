@@ -1,0 +1,147 @@
+"use client";
+
+/**
+ * Proactive contextual assistance system.
+ * Monitors user behavior and proactively surfaces help
+ * without waiting for the user to ask.
+ * This is what makes BallotIQ a SMART assistant, not just a chatbot.
+ */
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { UserContext } from '@/types';
+import { logger } from '@/lib/logger';
+import { announce } from '@/lib/announce';
+
+export type ProactiveTrigger =
+  | 'stuck_on_step'        // user on same step > 3 minutes
+  | 'consecutive_errors'   // 2+ wrong micro-quiz answers
+  | 'low_quiz_score'       // final quiz score < 60%
+  | 'rapid_completion'     // completing steps too fast (not reading)
+  | 'idle_too_long'        // no interaction for 5 minutes
+  | 'revisiting_step';     // user went back to a completed step
+
+export interface ProactiveSuggestion {
+  trigger: ProactiveTrigger;
+  message: string;
+  actionLabel: string;
+  actionHref?: string;
+  onAction?: () => void;
+}
+
+interface UseProactiveAssistantProps {
+  userContext: UserContext | null;
+  currentStepIndex: number;
+  consecutiveErrors: number;
+  completedStepsCount: number;
+  totalStepsCount: number;
+  onSuggestSimplification: () => void;
+}
+
+export function useProactiveAssistant({
+  userContext,
+  currentStepIndex,
+  consecutiveErrors,
+  completedStepsCount,
+  totalStepsCount,
+  onSuggestSimplification,
+}: UseProactiveAssistantProps) {
+  const [suggestion, setSuggestion] = useState<ProactiveSuggestion | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const stepStartTime = useRef<number | null>(null);
+  const lastInteractionTime = useRef<number>(Date.now());
+  const rapidCompletionCount = useRef<number>(0);
+
+  // Track when user arrived at current step
+  useEffect(() => {
+    stepStartTime.current = Date.now();
+    setIsDismissed(false);
+  }, [currentStepIndex]);
+
+  // Track last interaction
+  const recordInteraction = useCallback(() => {
+    lastInteractionTime.current = Date.now();
+  }, []);
+
+  // Check: stuck on step for 3+ minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!stepStartTime.current || isDismissed) return;
+      const minutesOnStep = (Date.now() - (stepStartTime.current ?? 0)) / 60000;
+      if (minutesOnStep >= 3 && !suggestion) {
+        const newSuggestion: ProactiveSuggestion = {
+          trigger: 'stuck_on_step',
+          message: "You've been on this step for a while. Would you like me to explain it differently?",
+          actionLabel: 'Ask the AI Assistant',
+          actionHref: `/assistant?country=${userContext?.countryCode}&context=stuck`,
+        };
+        setSuggestion(newSuggestion);
+        announce('BallotIQ has a suggestion for you.');
+        logger.info('Proactive trigger: stuck_on_step', {
+          component: 'useProactiveAssistant',
+          stepIndex: String(currentStepIndex),
+          minutesOnStep: String(Math.round(minutesOnStep)),
+        });
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [currentStepIndex, isDismissed, suggestion, userContext?.countryCode]);
+
+  // Check: consecutive errors
+  useEffect(() => {
+    if (consecutiveErrors >= 2 && !isDismissed && !suggestion) {
+      setSuggestion({
+        trigger: 'consecutive_errors',
+        message: "Getting a few wrong is completely normal! Want me to switch to simpler explanations?",
+        actionLabel: 'Simplify for me',
+        onAction: () => {
+          onSuggestSimplification();
+          dismiss();
+        },
+      });
+      announce('BallotIQ suggests switching to simpler explanations.');
+    }
+  }, [consecutiveErrors, isDismissed, onSuggestSimplification, suggestion]);
+
+  // Check: rapid completion (completing steps in under 30 seconds)
+  useEffect(() => {
+    if (!stepStartTime.current) return;
+    const secondsOnStep = (Date.now() - (stepStartTime.current ?? Date.now())) / 1000;
+    if (secondsOnStep < 30 && completedStepsCount > 0) {
+      rapidCompletionCount.current += 1;
+      if (rapidCompletionCount.current >= 3 && !isDismissed && !suggestion) {
+        setSuggestion({
+          trigger: 'rapid_completion',
+          message: "You're moving quickly! Make sure to read each step carefully — the quiz will test these concepts.",
+          actionLabel: 'Got it, I will',
+          onAction: dismiss,
+        });
+      }
+    }
+  }, [completedStepsCount, isDismissed, suggestion]);
+
+  // Check: idle too long (5 minutes no interaction)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isDismissed) return;
+      const minutesIdle = (Date.now() - lastInteractionTime.current) / 60000;
+      if (minutesIdle >= 5 && !suggestion) {
+        setSuggestion({
+          trigger: 'idle_too_long',
+          message: "Still there? Take your time — your progress is saved and you can continue anytime.",
+          actionLabel: 'Continue learning',
+          onAction: dismiss,
+        });
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [isDismissed, suggestion]);
+
+  const dismiss = useCallback(() => {
+    setIsDismissed(true);
+    setSuggestion(null);
+  }, []);
+
+  return { suggestion, dismiss, recordInteraction };
+}
