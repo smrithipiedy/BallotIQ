@@ -1,6 +1,7 @@
 # BallotIQ 🗳️
 
-An adaptive AI tutor & assistant that helps users understand their country's election process — personalized to their knowledge level, translated into their language, and spoken aloud in their voice. Built for **PromptWars Virtual — Week 2** 
+An adaptive AI tutor & assistant that helps users understand their country's election process — personalized to their knowledge level, translated into their language, and spoken aloud in their voice. 
+Built for **PromptWars Virtual — Week 2** 
 
 ---
 
