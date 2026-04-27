@@ -1,6 +1,6 @@
-# BallotIQ 🗳️ — Adaptive Civics AI
+# BallotIQ 🗳️
 
-**BallotIQ** is a high-performance, personalized election education platform built for the PromptWars Virtual Hackathon. It leverages Google Gemini 1.5 Flash to transform complex election procedures into digestible, adaptive learning paths tailored to each user's country, knowledge level, and language.
+**BallotIQ** is a high-performance, personalized election education platform built for the PromptWars Virtual Hackathon. It leverages Google Gemini to transform complex election procedures into digestible, adaptive learning paths tailored to each user's country, knowledge level, and language.
 
 ## 🚀 Key Features
 
@@ -13,7 +13,7 @@
 
 ## 🛠️ Google Services Integration
 
-1. **Gemini 1.5 Flash**: Core adaptive learning engine, diagnostic analysis, and personalized quiz generation.
+1. **Gemini 2.5 Flash / Gemini 3.1 Flash Lite**: Core adaptive learning engine, diagnostic analysis, and personalized quiz generation.
 2. **Firebase Firestore**: Real-time session persistence, global content caching, and progress tracking.
 3. **Firebase Auth**: Anonymous authentication for secure, isolated user sessions.
 4. **Google Cloud Translation**: Dynamic UI and content translation for 8 native languages.
