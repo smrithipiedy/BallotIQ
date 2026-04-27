@@ -1,7 +1,7 @@
 # BallotIQ 🗳️
 
 An adaptive AI tutor & assistant that helps users understand their country's election process — personalized to their knowledge level, translated into their language, and spoken aloud in their voice. 
-Built for **PromptWars Virtual — Week 2** 
+- Built for **PromptWars Virtual — Week 2** 
 
 ---
 
@@ -87,9 +87,8 @@ npm test        # 50+ test cases
 Deployed on **Google Cloud Run**.
 
 ## Demo Screenshots
-
-<img width="1280" height="611" alt="image" src="https://github.com/user-attachments/assets/19dc5777-068f-4aaa-8e48-45c51e611a6d" />
 <img width="1280" height="614" alt="image" src="https://github.com/user-attachments/assets/f47273a7-66c2-4a46-8810-740959088a29" />
+<img width="1280" height="611" alt="image" src="https://github.com/user-attachments/assets/19dc5777-068f-4aaa-8e48-45c51e611a6d" />
 <img width="1280" height="609" alt="image" src="https://github.com/user-attachments/assets/c9824f7e-9263-4387-877c-4d6cd8b2c1ec" />
 <img width="1280" height="609" alt="image" src="https://github.com/user-attachments/assets/e83f0e37-83f0-4e7d-bc1b-a188cfa88f6d" />
 
