@@ -1,79 +1,98 @@
 # BallotIQ 🗳️
 
-**BallotIQ** is a high-performance, personalized election education platform built for the PromptWars Virtual Hackathon. It leverages Google Gemini to transform complex election procedures into digestible, adaptive learning paths tailored to each user's country, knowledge level, and language.
-
-## 🚀 Key Features
-
-- **Adaptive Learning Loop**: Diagnostic assessment determines your knowledge level (Beginner, Intermediate, Advanced) and builds a personalized curriculum.
-- **Intelligence Layer**: Detects when users struggle with micro-quizzes and automatically simplifies content ("Adaptation Mode").
-- **Global Coverage**: Deep support for 8 major democracies (India, USA, UK, Canada, Australia, Brazil, South Africa, Nigeria).
-- **8 Native Languages**: Full platform translation into Hindi, Bengali, Telugu, Tamil, Spanish, French, and Portuguese.
-- **Multi-Tier Reliability**: Three-tier content delivery (Live API → Firestore Cache → Static Fallback) ensures 100% uptime.
-- **Accessibility First**: Integrated Google Cloud TTS for all content, high-contrast dark theme, and WCAG-compliant navigation with automated `jest-axe` validation.
-
-## 🛠️ Google Services Integration
-
-1. **Gemini 2.5 Flash / Gemini 3.1 Flash Lite**: Core adaptive learning engine, diagnostic analysis, and personalized quiz generation.
-2. **Firebase Firestore**: Real-time session persistence, global content caching, and progress tracking.
-3. **Firebase Auth**: Anonymous authentication for secure, isolated user sessions.
-4. **Google Cloud Translation**: Dynamic UI and content translation for 8 native languages.
-5. **Google Cloud Text-to-Speech**: High-quality voice synthesis for improved accessibility.
-6. **Google Maps Places API**: Location-aware polling station finder with dark-themed visualization.
-7. **Google Analytics (Firebase)**: Comprehensive tracking of learning milestones and user engagement.
-
-## 📦 Tech Stack
-
-- **Framework**: Next.js 14 (App Router, Static Export)
-- **AI**: Google Gemini 1.5 Flash (Learning, Analysis, Quizzing)
-- **Database**: Firebase (Firestore for Caching, Sessions, Progress)
-- **Security**: Dedicated sanitization layer (XSS/Injection protection) and client-side Rate Limiting.
-- **Styling**: Tailwind CSS v4 with premium dark-mode aesthetics.
-- **Testing**: Jest & React Testing Library (50+ test cases).
-
-## 📦 Getting Started
-
-1. **Clone the repository**
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-3. **Configure Environment**:
-   Create a `.env.local` file with the following:
-   ```env
-   NEXT_PUBLIC_GEMINI_API_KEY=your_key
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
-   NEXT_PUBLIC_TRANSLATE_API_KEY=your_key
-   NEXT_PUBLIC_TTS_API_KEY=your_key
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
-   ```
-4. **Run Development Server**:
-   ```bash
-   npm run dev
-   ```
-5. **Build & Export**:
-   ```bash
-   npm run build
-   ```
-
-## 🧪 Testing
-
-The project includes a comprehensive test suite covering security, validation, and core components:
-```bash
-npm test
-```
-
-## 🛡️ Security
-
-BallotIQ implements rigorous security standards:
-- **Sanitization**: All AI outputs and user inputs pass through a strict sanitization pipeline.
-- **Rate Limiting**: Usage-based limits for Gemini, Translate, and TTS APIs to prevent quota exhaustion.
-- **Isolation**: Firestore security rules ensure users can only access their own session data.
+An adaptive AI tutor that helps users understand their country's election process — personalized to their knowledge level, translated into their language, and spoken aloud in their voice. Built for **PromptWars Virtual — Week 2** 
 
 ---
+
+## What it does
+
+Most civic education tools treat every user the same. BallotIQ doesn't.
+
+When you open BallotIQ, you choose how you want to learn:
+
+- **Guided Path** — A 3-question diagnostic figures out what you already know, then Gemini builds a personalized learning path just for you. Micro-quizzes after each step check your understanding. Get two wrong in a row and the app automatically switches to simpler explanations. Finish with a certification quiz personalized to what *you* actually studied.
+- **Open Chat** — Skip the structure and just talk to the AI assistant directly. Ask whatever you want about your country's election process.
+
+The entire platform — every label, button, content block, and AI response — translates in real time into 8 languages. Google Cloud TTS then reads everything aloud in your selected language, so a Tamil-speaking first-time voter gets both the text and the audio in Tamil.
+
+---
+
+## Google services used
+
+| Service | What it does in BallotIQ |
+|---|---|
+| **Gemini 2.1 Flash / 2.1 Flash Lite** | Assessment analysis, personalized guide generation, micro-quizzes, re-explanations, final quiz, conversational assistant, performance insights |
+| **Firebase Firestore** | Session persistence, 24h guide caching, rate limit tracking, chat history |
+| **Firebase Auth** | Anonymous sessions — required for all Firestore operations |
+| **Firebase Analytics** | 7 custom learning events tracking the full user journey |
+| **Google Cloud Translation** | Real-time full-UI translation into 8 languages |
+| **Google Cloud TTS** | Reads all content aloud in the user's selected language |
+| **Google Maps Places API** | Country selector autocomplete + polling station finder |
+
+Removing any one of these breaks the app. Each is load-bearing.
+
+---
+
+## How the prompts evolved
+
+Started with basic country + question prompts. Responses were generic.
+
+Added a `UserContext` object — knowledge level, main confusion, completed steps, adaptation status — and passed it to every Gemini call. Responses became meaningfully different between a beginner and an advanced user asking the same question.
+
+Switched all structured outputs to JSON-only with explicit instructions and no markdown fences. Built a `validator.ts` with type guards on every response so malformed AI output never crashes the app.
+
+Early builds hit rate limits because multiple Gemini calls fired simultaneously on page load. Fixed with a concurrency limiter (max 2 concurrent) and exponential backoff before falling through to cached or static content.
+
+---
+
+## What GenAI handled vs. what I designed
+
+**GenAI:** Personalized election guides for 8 countries across 3 knowledge levels, micro-quiz generation, concept re-explanation using analogies for beginners and deeper detail for advanced users, final quiz questions based on each user's actual completed steps, and the audit prompt that stress-tested the entire codebase against spec.
+
+**Me:** The two-mode entry point (Guided vs. Open Chat), the three-tier fallback architecture, the `UserContext` schema, the Adaptation Mode trigger logic, the security layer (sanitization + rate limiting + Firestore rules), and the UI direction.
+
+---
+
+## Setup
+
+```bash
+git clone https://github.com/yourusername/ballotiq
+cd ballotiq
+npm install
+```
+
+Create `.env.local`:
+
+```env
+NEXT_PUBLIC_GEMINI_API_KEY=
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+NEXT_PUBLIC_TRANSLATE_API_KEY=
+NEXT_PUBLIC_TTS_API_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+```
+
+```bash
+npm run dev     # development
+npm run build   # static export to /out
+npm test        # 50+ test cases
+```
+
+Deployed on **Google Cloud Run**.
+
+## Demo Screenshots
+
+<img width="1280" height="611" alt="image" src="https://github.com/user-attachments/assets/19dc5777-068f-4aaa-8e48-45c51e611a6d" />
+<img width="1280" height="614" alt="image" src="https://github.com/user-attachments/assets/f47273a7-66c2-4a46-8810-740959088a29" />
+<img width="1280" height="609" alt="image" src="https://github.com/user-attachments/assets/c9824f7e-9263-4387-877c-4d6cd8b2c1ec" />
+<img width="1280" height="609" alt="image" src="https://github.com/user-attachments/assets/e83f0e37-83f0-4e7d-bc1b-a188cfa88f6d" />
+
+---
+
+*Non-partisan • Educational only • Powered by Google Services*
 *Built with ❤️ for PromptWars Virtual — Empowering voters through intelligence.*
