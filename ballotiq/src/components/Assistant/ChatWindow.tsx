@@ -25,11 +25,12 @@ interface ChatWindowProps {
   isSpeaking: boolean;
   currentSpokenText: string | null;
   onSpeak: (text: string) => void;
+  onAiStatusChange?: (active: boolean) => void;
 }
 
 /** Full-featured chat interface with context-aware AI responses */
 export default function ChatWindow({
-  userContext, completedSteps, isSpeaking, currentSpokenText, onSpeak,
+  userContext, completedSteps, isSpeaking, currentSpokenText, onSpeak, onAiStatusChange,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -79,6 +80,10 @@ export default function ChatWindow({
 
       const response = await askAssistant(sanitized, userContext, completedSteps, messages);
 
+      // Detect AI failure responses
+      const isAiFailure = response.includes('at capacity') || response.includes('offline') || response.includes('limit reached');
+      onAiStatusChange?.(!isAiFailure);
+
       const assistantMsg: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
         role: 'assistant',
@@ -95,10 +100,11 @@ export default function ChatWindow({
         setUsedVoice(false);
       }
     } catch {
+      onAiStatusChange?.(false);
       const errorMsg: ChatMessage = {
         id: `msg_${Date.now()}_error`,
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: 'Something went wrong. Please try again.',
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -202,33 +208,33 @@ export default function ChatWindow({
         </p>
 
         {/* Input */}
-        <div className="p-6 border-t border-white/5 bg-white/[0.01]">
-          <div className="flex gap-3">
+        <div className="p-3 sm:p-6 border-t border-white/5 bg-white/[0.01]">
+          <div className="flex gap-2 sm:gap-3">
             <div className="flex-1 relative group">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value.slice(0, maxChars))}
                 onKeyDown={handleKeyDown}
                 placeholder={isListening ? "Listening..." : "Ask about elections..."}
-                className={`w-full px-6 py-4 pr-16 bg-white/[0.03] border ${isListening ? 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-white/10'} rounded-2xl text-[15px] text-white placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/20 transition-all`}
+                className={`w-full px-4 sm:px-6 py-3 sm:py-4 pr-14 bg-white/[0.03] border ${isListening ? 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-white/10'} rounded-xl sm:rounded-2xl text-sm sm:text-[15px] text-white placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/20 transition-all`}
                 rows={1}
                 aria-label="Type your question"
                 disabled={isLoading}
               />
-              <span className="absolute right-4 bottom-2 text-[10px] font-medium tracking-tighter text-gray-600">{input.length}/{maxChars}</span>
+              <span className="absolute right-3 bottom-1.5 text-[9px] sm:text-[10px] font-medium tracking-tighter text-gray-600">{input.length}/{maxChars}</span>
             </div>
             
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={isLoading}
-              className={`group px-4 rounded-2xl transition-all duration-300 flex items-center justify-center ${
+              className={`group px-3 sm:px-4 rounded-xl sm:rounded-2xl transition-all duration-300 flex items-center justify-center flex-shrink-0 ${
                 isListening 
                   ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' 
                   : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
               }`}
               title={isListening ? "Stop Listening" : "Talk to AI"}
             >
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {isListening ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
             <button
@@ -237,10 +243,10 @@ export default function ChatWindow({
                 sendMessage(input);
               }}
               disabled={!input.trim() || isLoading}
-              className="group px-6 bg-white text-black rounded-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5"
+              className="group px-4 sm:px-6 bg-white text-black rounded-xl sm:rounded-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5 flex-shrink-0"
               aria-label="Send message"
             >
-              <Send className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>

@@ -24,6 +24,7 @@ import type {
   ChatMessage,
   RateLimitState,
   CacheEntry,
+  QuizQuestion,
 } from '@/types';
 
 /**

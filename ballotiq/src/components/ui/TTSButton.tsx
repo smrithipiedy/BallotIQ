@@ -24,6 +24,7 @@ export default function TTSButton({
   return (
     <button
       onClick={() => onToggle(text)}
+      data-tts-control="true"
       className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
         isActive
           ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30'

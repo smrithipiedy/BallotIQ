@@ -16,7 +16,6 @@ const HTML_ENTITIES: Record<string, string> = {
   '>': '&gt;',
   '&': '&amp;',
   '"': '&quot;',
-  "'": '&#x27;',
 };
 
 /**
@@ -33,7 +32,7 @@ export function sanitizeUserInput(input: string): string {
 
   return input
     .replace(/<[^>]*>/g, '')
-    .replace(/[<>&"']/g, (char) => HTML_ENTITIES[char] ?? char)
+    .replace(/[<>&"]/g, (char) => HTML_ENTITIES[char] ?? char)
     .replace(/ignore previous instructions/gi, '')
     .replace(/system:/gi, '')
     .replace(/\[INST\]/gi, '')

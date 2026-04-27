@@ -14,6 +14,7 @@ import { useAssessment } from '@/hooks/useAssessment';
 import { useProgress } from '@/hooks/useProgress';
 import { useTTS } from '@/hooks/useTTS';
 import { useTranslation } from '@/hooks/useTranslation';
+import LanguageSelector from '@/components/ui/LanguageSelector';
 import type { Country } from '@/types';
 
 /** Three-step diagnostic assessment page */
@@ -56,7 +57,7 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
     userContext?.knowledgeLevel ?? 'beginner'
   );
   const { language } = useTranslation();
-  const { isSpeaking, currentText, toggle: toggleTTS } = useTTS(language, sessionId);
+  const { isSpeaking, currentText, toggle: toggleTTS } = useTTS(sessionId);
 
   useEffect(() => {
     if (phase === 'complete' && userContext) {
@@ -81,13 +82,16 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back</span>
         </button>
-        <div className="flex items-center gap-2">
-          <img 
-            src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`} 
-            alt="" 
-            className="w-6 h-4 object-cover rounded-sm shadow-sm"
-          />
-          <span className="text-sm text-gray-400">{country.name}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <img 
+              src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`} 
+              alt="" 
+              className="w-6 h-4 object-cover rounded-sm shadow-sm"
+            />
+            <span className="text-sm text-gray-400">{country.name}</span>
+          </div>
+          <LanguageSelector />
         </div>
       </header>
 

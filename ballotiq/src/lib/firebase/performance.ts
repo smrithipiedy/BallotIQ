@@ -18,15 +18,24 @@ export async function withTrace<T>(
   attributesOrFn: Record<string, string> | (() => Promise<T>),
   maybeFn?: () => Promise<T>
 ): Promise<T> {
-  if (!perf) {
-    return typeof attributesOrFn === 'function' ? attributesOrFn() : maybeFn!();
-  }
-  
-  const t = trace(perf, traceName);
+  const fn = typeof attributesOrFn === 'function' ? attributesOrFn : maybeFn;
   const attributes = typeof attributesOrFn === 'object' ? attributesOrFn : {};
-  const fn = typeof attributesOrFn === 'function' ? attributesOrFn : maybeFn!;
 
-  Object.entries(attributes).forEach(([k, v]) => t.putAttribute(k, v));
+  if (!fn) {
+    console.error(`[withTrace] No function provided for trace: ${traceName}`);
+    return Promise.resolve() as any;
+  }
+
+  // If performance monitoring is unavailable or we're on SSR, just run the function
+  if (!perf) return fn();
+
+  const t = trace(perf, traceName);
+  
+  // Set attributes before starting
+  Object.entries(attributes).forEach(([k, v]) => {
+    if (v) t.putAttribute(k, String(v));
+  });
+  
   t.start();
   
   try {

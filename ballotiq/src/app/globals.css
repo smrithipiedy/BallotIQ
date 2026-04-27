@@ -125,19 +125,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   border-radius: 4px !important;
 }
 
-/* Infinite Carousel Animation */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
 
-.animate-marquee {
-  animation: marquee 40s linear infinite;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;

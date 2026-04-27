@@ -53,10 +53,12 @@ const isGeminiEnabled =
  * gemini-1.5-flash: Most stable fallback.
  */
 const MODELS_TO_TRY = [
-  'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
-  'gemini-1.5-flash'
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash-001',
 ] as const;
 
 // Initialize genAI once
@@ -82,7 +84,7 @@ async function callGemini(
     return null;
   }
 
-  const models = lite ? ['gemini-2.0-flash-lite-001', 'gemini-1.5-flash'] : MODELS_TO_TRY;
+  const models = lite ? ['gemini-2.5-flash-lite', 'gemini-2.5-flash'] : MODELS_TO_TRY;
   const retryDelays = lite ? [1000] : [2000, 5000];
 
   for (const modelId of models) {
@@ -151,7 +153,7 @@ async function callGeminiQuiz(
   sessionId: string,
 ): Promise<string | null> {
   if (!isGeminiEnabled) return null;
-  const models = MODELS_TO_TRY;
+  const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
 
   for (const modelId of models) {
     try {
@@ -159,7 +161,7 @@ async function callGeminiQuiz(
         model: modelId,
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 2048 // Increased for 10 questions
+          maxOutputTokens: 800 // Lowered for faster 5 questions load
         }
       });
       const result = await model.generateContent(prompt);
@@ -296,8 +298,8 @@ export async function generatePersonalizedQuiz(
 ): Promise<QuizQuestion[]> {
   const fallback: QuizQuestion[] = [];
 
-  // Build a 10-question fallback by extracting DIFFERENT facts from each step
-  for (let i = 0; i < 10; i++) {
+  // Build a 5-question fallback by extracting DIFFERENT facts from each step
+  for (let i = 0; i < 5; i++) {
     const stepIndex = i % completedSteps.length;
     const s = completedSteps[stepIndex];
     if (!s) continue;
@@ -373,22 +375,26 @@ export async function askAssistant(
     { countryCode: userContext.countryCode },
     async () => {
       if (!isGeminiEnabled) {
-        return 'The AI assistant is unavailable because the Gemini API key is not configured.';
+        return 'The AI assistant is offline. Check your API key configuration.';
       }
 
       const limit = await checkRateLimit(userContext.sessionId, 'gemini');
       if (!limit.allowed) {
-        return 'Daily AI request limit reached. Please try again tomorrow.';
+        return 'You\'ve reached the daily AI request limit. Try again tomorrow.';
       }
 
       const systemPrompt = buildAssistantSystemPrompt(userContext, completedSteps, chatHistory.length);
       const userMessage = buildAssistantUserMessage(question, chatHistory);
 
-      const raw = await callGemini(userMessage, userContext.sessionId, false, systemPrompt, 2048);
-
-      if (raw) return sanitizeAIResponse(raw);
-
-      return 'The AI service is currently at capacity. Please try again in a moment, or browse the offline guide below.';
+      try {
+        // 300 tokens enforces concise replies; lite=true picks the fastest model
+        const raw = await callGemini(userMessage, userContext.sessionId, true, systemPrompt, 300);
+        if (raw) return sanitizeAIResponse(raw);
+        return 'BallotIQ AI is at capacity right now. Please try again in a moment.';
+      } catch (err) {
+        logger.error('Assistant API call failed', err, { component: 'GeminiClient', sessionId: userContext.sessionId });
+        throw err;
+      }
     }
   );
 }

@@ -9,6 +9,7 @@ import { X, Lightbulb } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { ProactiveSuggestion } from '@/hooks/useProactiveAssistant';
 import Link from 'next/link';
+import TranslatedText from '@/components/ui/TranslatedText';
 
 interface Props {
   suggestion: ProactiveSuggestion;
@@ -32,7 +33,9 @@ export function ProactiveSuggestionBanner({ suggestion, onDismiss }: Props) {
         aria-hidden="true"
       />
       <div className="flex-1">
-        <p className="text-sm text-blue-100">{suggestion.message}</p>
+        <p className="text-sm text-blue-100">
+          <TranslatedText text={suggestion.message} />
+        </p>
         <div className="mt-2 flex gap-2">
           {suggestion.actionHref ? (
             <Link
@@ -43,7 +46,7 @@ export function ProactiveSuggestionBanner({ suggestion, onDismiss }: Props) {
                          focus-visible:ring-white"
               aria-label={suggestion.actionLabel}
             >
-              {suggestion.actionLabel}
+              <TranslatedText text={suggestion.actionLabel} />
             </Link>
           ) : (
             <button
@@ -53,7 +56,7 @@ export function ProactiveSuggestionBanner({ suggestion, onDismiss }: Props) {
                          focus-visible:ring-white"
               aria-label={suggestion.actionLabel}
             >
-              {suggestion.actionLabel}
+              <TranslatedText text={suggestion.actionLabel} />
             </button>
           )}
           <button
@@ -62,7 +65,7 @@ export function ProactiveSuggestionBanner({ suggestion, onDismiss }: Props) {
                        transition-colors"
             aria-label="Dismiss suggestion"
           >
-            Dismiss
+            <TranslatedText text="Dismiss" />
           </button>
         </div>
       </div>

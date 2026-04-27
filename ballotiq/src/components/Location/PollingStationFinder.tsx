@@ -155,7 +155,7 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
         currentMapRef.innerHTML = '';
       }
     };
-  }, []);
+  }, [country.code, country.electionBody, country.electionBodyUrl]);
 
   if (error) {
     return (
@@ -178,7 +178,7 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
 
   return (
     <ErrorBoundary componentName="PollingStationFinder">
-      <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[600px] rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000 group">
+      <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[600px] rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl group">
         {/* Map instance */}
         <div
           ref={mapRef}
@@ -265,4 +265,7 @@ function getCurrentPosition(countryCode: string): Promise<{ lat: number; lng: nu
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(defaultPos),
+      () => resolve(defaultPos)
+    );
+  });
+}

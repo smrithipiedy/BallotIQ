@@ -7,6 +7,7 @@
 
 import { CheckCircle2, Lock, Circle } from 'lucide-react';
 import type { ElectionStep } from '@/types';
+import TranslatedText from '@/components/ui/TranslatedText';
 
 interface TimelineProps {
   steps: ElectionStep[];
@@ -61,9 +62,11 @@ export default function Timeline({ steps, currentStepIndex, completedSteps, onSt
                 <p className={`text-sm font-medium truncate ${
                   isCurrent ? 'text-blue-300' : isCompleted ? 'text-gray-300' : 'text-gray-500'
                 }`}>
-                  {step.title}
+                  <TranslatedText text={step.title} />
                 </p>
-                <p className="text-xs text-gray-500 truncate">{step.timeline}</p>
+                <p className="text-xs text-gray-500 truncate">
+                  <TranslatedText text={step.timeline} />
+                </p>
               </div>
             </button>
           </div>

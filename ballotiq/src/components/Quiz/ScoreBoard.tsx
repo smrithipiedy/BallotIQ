@@ -6,6 +6,7 @@
 import type { QuizResult } from '@/types';
 import KnowledgeMeter from '@/components/Assessment/KnowledgeMeter';
 import type { KnowledgeLevel } from '@/types';
+import TranslatedText from '@/components/ui/TranslatedText';
 
 interface ScoreBoardProps {
   score: number;
@@ -58,10 +59,10 @@ export default function ScoreBoard({
       {/* Title */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">
-          {isPerfect ? 'Perfect Score!' : isPassing ? 'Quiz Complete!' : 'Keep Learning!'}
+          {isPerfect ? <TranslatedText text="Perfect Score!" /> : isPassing ? <TranslatedText text="Quiz Complete!" /> : <TranslatedText text="Keep Learning!" />}
         </h2>
         <p className="text-gray-400">
-          {countryName} Election Knowledge Assessment
+          <TranslatedText text={countryName} /> <TranslatedText text="Election Knowledge Assessment" />
         </p>
         <div className="mt-3 flex justify-center">
           <KnowledgeMeter level={knowledgeLevel} />
@@ -72,15 +73,15 @@ export default function ScoreBoard({
       <div className="flex justify-center gap-6">
         <div className="text-center">
           <p className="text-2xl font-bold text-white">{avgTime}s</p>
-          <p className="text-xs text-gray-500">Avg. time per question</p>
+          <p className="text-xs text-gray-500"><TranslatedText text="Avg. time per question" /></p>
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-emerald-400">{score}</p>
-          <p className="text-xs text-gray-500">Correct answers</p>
+          <p className="text-xs text-gray-500"><TranslatedText text="Correct answers" /></p>
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-red-400">{total - score}</p>
-          <p className="text-xs text-gray-500">Incorrect</p>
+          <p className="text-xs text-gray-500"><TranslatedText text="Incorrect" /></p>
         </div>
       </div>
 
@@ -88,7 +89,7 @@ export default function ScoreBoard({
       {performanceInsight && (
         <div className="max-w-lg mx-auto p-8 bg-white/[0.03] border border-white/5 backdrop-blur-xl rounded-[2rem] shadow-2xl">
           <p className="text-[15px] text-gray-300 leading-relaxed italic">
-            &ldquo;{performanceInsight}&rdquo;
+            &ldquo;<TranslatedText text={performanceInsight} />&rdquo;
           </p>
         </div>
       )}
@@ -97,9 +98,11 @@ export default function ScoreBoard({
       {isPassing && (
         <div className="inline-block p-1 rounded-[2.5rem] bg-gradient-to-b from-emerald-500/20 to-transparent">
           <div className="p-8 bg-[#081508] border border-emerald-500/10 rounded-[2.25rem] shadow-2xl">
-            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-[0.2em] mb-2">Certificate of Completion</p>
-            <p className="text-2xl font-black text-white mb-1">🗳️ BallotIQ Certified</p>
-            <p className="text-sm text-emerald-400/60 font-medium">{countryName} Election Process • {percentage}%</p>
+            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-[0.2em] mb-2"><TranslatedText text="Certificate of Completion" /></p>
+            <p className="text-2xl font-black text-white mb-1">🗳️ <TranslatedText text="BallotIQ Certified" /></p>
+            <p className="text-sm text-emerald-400/60 font-medium">
+              <TranslatedText text={countryName} /> <TranslatedText text="Election Process" /> • {percentage}%
+            </p>
           </div>
         </div>
       )}
@@ -111,7 +114,7 @@ export default function ScoreBoard({
             className="px-10 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 hover:scale-105 transition-all duration-300 active:scale-95 shadow-xl"
             aria-label="Retake the quiz"
           >
-            Retake Quiz
+            <TranslatedText text="Retake Quiz" />
           </button>
         </div>
       )}

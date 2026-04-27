@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Zap } from 'lucide-react';
 import type { ElectionStep, UserContext } from '@/types';
 import { useQuiz } from '@/hooks/useQuiz';
 import { generatePerformanceInsight } from '@/lib/gemini/client';
@@ -17,6 +17,7 @@ import QuizCard from '@/components/Quiz/QuizCard';
 import ScoreBoard from '@/components/Quiz/ScoreBoard';
 import ProgressDots from '@/components/Quiz/ProgressDots';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
+import LanguageSelector from '@/components/ui/LanguageSelector';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import TranslatedText from '@/components/ui/TranslatedText';
 
@@ -71,36 +72,43 @@ export default function QuizPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
-      {/* Header */}
+      {/* Header — matches learn page style */}
       <header className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <button
               onClick={() => router.push(`/learn/${userContext.countryCode.toLowerCase()}/`)}
-              className="p-2.5 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group shadow-sm"
+              className="p-2.5 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group shadow-sm flex-shrink-0"
               aria-label="Back to learning"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span className="text-sm font-semibold text-white tracking-tight leading-none whitespace-nowrap">
-                🎯 <TranslatedText text="Certification Quiz" />
-              </span>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                <img 
+                  src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
+                  alt="" 
+                  className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
+                />
+                <span className="text-sm font-bold text-white tracking-tight leading-none whitespace-nowrap">
+                  <TranslatedText text="Quiz" />
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-medium text-gray-400">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <Zap className="w-3 h-3" />
               <TranslatedText text="In Progress" />
             </div>
-            <div className="w-10" /> {/* Spacer to balance LanguageSelector if added later */}
+            <LanguageSelector />
           </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <ErrorBoundary componentName="QuizPage">
           {loading ? (
             <div className="space-y-6">
@@ -117,7 +125,7 @@ export default function QuizPage() {
               countryName={userContext.countryName}
             />
           ) : currentQuestion ? (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               <ProgressDots total={questions.length} current={currentIndex} results={results} />
 
               {/* Timer bar */}
@@ -137,16 +145,16 @@ export default function QuizPage() {
               {phase === 'reviewing' && (
                 <button
                   onClick={nextQuestion}
-                  className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:scale-105 transition-all duration-300 shadow-xl active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 sm:py-4 bg-white text-black font-bold rounded-2xl hover:scale-[1.02] transition-all duration-300 shadow-xl active:scale-95 flex items-center justify-center gap-2 text-sm sm:text-base"
                   aria-label={currentIndex < questions.length - 1 ? 'Next question' : 'See results'}
                 >
-                  {currentIndex < questions.length - 1 ? 'Next Question →' : 'See Results 🏆'}
+                  <TranslatedText text={currentIndex < questions.length - 1 ? 'Next Question' : 'See Results'} />
                 </button>
               )}
             </div>
           ) : (
             <div className="text-center py-20">
-              <p className="text-gray-400">No quiz questions available.</p>
+              <p className="text-gray-400"><TranslatedText text="No quiz questions available." /></p>
             </div>
           )}
         </ErrorBoundary>

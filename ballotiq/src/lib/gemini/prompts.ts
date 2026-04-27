@@ -158,14 +158,14 @@ export function buildPersonalizedQuizPrompt(
   ).join('\n\n');
 
   const difficultySpec = knowledgeLevel === 'advanced'
-    ? '10 COMPLEX, SCENARIO-BASED questions testing legal application, edge cases, and specific statutory details. Do NOT repeat micro-quiz questions.'
+    ? '5 COMPLEX, SCENARIO-BASED questions testing legal application, edge cases, and specific statutory details. Do NOT repeat micro-quiz questions.'
     : knowledgeLevel === 'intermediate'
-    ? '10 APPLICATION-BASED questions testing process flow, deadlines, and procedural scenarios.'
-    : '10 COMPREHENSION questions testing overall process understanding and key facts.';
+    ? '5 APPLICATION-BASED questions testing process flow, deadlines, and procedural scenarios.'
+    : '5 COMPREHENSION questions testing overall process understanding and key facts.';
 
   return `Generate ${difficultySpec} for a certification quiz in ${countryCode}.
 
-CRITICAL: Each question MUST reference a specific fact, name, number, or detail from the step content below. Do NOT generate generic questions.
+CRITICAL: Each question MUST be properly framed as a complete, clear, and specific sentence (e.g., "What is the minimum age to vote in ${countryCode}?" instead of just "Age?"). Questions MUST reference a specific fact, name, number, or detail from the step content below. Do NOT generate generic or vague questions.
 
 Steps studied:
 ${stepDetails}
@@ -186,46 +186,28 @@ export function buildAssistantSystemPrompt(
 ): string {
   const steps = completedSteps.map((s) => s.title).join(', ');
   const depthNote = userContext.knowledgeLevel === 'advanced'
-    ? 'Provide technically precise, legally accurate answers with specific references to laws, articles, and official procedures.'
+    ? 'Be precise. Reference specific laws, articles, or procedures by name when relevant.'
     : userContext.knowledgeLevel === 'intermediate'
-    ? 'Provide clear, detailed answers covering the full process with specific steps and official guidance.'
-    : 'Explain concepts simply using analogies. Avoid jargon. Be encouraging and clear.';
+    ? 'Be clear and specific. Name the key steps, deadlines, and official bodies involved.'
+    : 'Keep it simple. Use everyday language. One short analogy can help if needed.';
 
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  const greeting = messageCount === 0
+    ? `Start with a single warm, natural sentence greeting them as a ${userContext.knowledgeLevel}-level learner in ${userContext.countryName}. Then answer.`
+    : 'Do NOT greet. Get straight to the answer.';
 
-  return `You are BallotIQ, a helpful teacher and non-partisan election expert for ${userContext.countryName}. 
-Your goal is to guide the user with warm, professional, and concise information that is balanced in length—neither too short nor too overwhelming.
+  return `You are BallotIQ, a friendly non-partisan election guide for ${userContext.countryName}.
 
-Current Date: ${currentDate}
+User: ${userContext.knowledgeLevel} level, confused about "${userContext.mainConfusion}". Studied: ${steps || 'nothing yet'}.
 
-User Profile:
-- Country: ${userContext.countryName} (${userContext.countryCode})
-- Knowledge Level: ${userContext.knowledgeLevel}
-- Voted Before: ${userContext.hasVotedBefore ? 'Yes' : 'No (first-time voter)'}
-- Main Confusion: "${userContext.mainConfusion}"
-- Topics Completed: ${steps || 'Just started'}
-- Simplified Mode: ${userContext.adaptationActive ? 'Yes — use extra simple language' : 'No'}
-
-Response Guidelines:
-1. ONLY answer questions about ${userContext.countryName} elections. If asked about another country, politely redirect.
+RULES (strictly follow):
+1. Answer ONLY in 2-4 short paragraphs, 80-120 words total. No exceptions.
 2. ${depthNote}
-3. If you don't know a specific current detail, say so and direct the user to the official election body website.
-4. Directly address the user's stated confusion ("${userContext.mainConfusion}") if it's relevant to their question.
-5. Formatting & Tone:
-   - Use a "helpful teacher" tone: encouraging, clear, and focused.
-   - DO NOT use markdown symbols like asterisks (*), hashes (#), or bullet markers.
-   - Use clean, plain text with simple paragraph breaks.
-   - Aim for 2-4 short, punchy paragraphs (approx 150-200 words).
-   - Ensure your response is COMPLETE and does not end abruptly.
-7. Conversational Flow:
-   - ${messageCount === 0 ? 'Greet the user warmly as this is the start of the conversation.' : 'DO NOT say "Hello", "Hi", or greet the user as this is a continuing conversation. Get straight to the point.'}
-   - DO NOT use repetitive clichés like "That's a very insightful question", "Great question", or "I'd be happy to help".
-   - Start your response directly with the information requested.
-8. Never express political opinions or favor any party, candidate, or ideology.`;
+3. ${greeting}
+4. Plain text only — no **, no #, no bullet symbols, no markdown.
+5. Be direct, warm, and clear. Never say "Great question" or similar filler.
+6. If unsure, say so briefly and point to the official election body.
+7. Stay on ${userContext.countryName} elections only. Politely redirect if asked otherwise.
+8. Never express political opinions.`;
 }
 
 /**
@@ -254,18 +236,11 @@ export function buildAssistantUserMessage(
   question: string,
   chatHistory: ChatMessage[],
 ): string {
-  const recent = chatHistory.slice(-6).map((m) => `${m.role}: ${m.content}`).join('\n');
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  const historyArr = Array.isArray(chatHistory) ? chatHistory : [];
+  // Only last 4 messages for speed
+  const recent = historyArr.slice(-4).map((m) => `${m.role}: ${m.content}`).join('\n');
   
-  return `${recent ? `Recent conversation:\n${recent}\n\n` : ''}---
-CURRENT REAL-TIME DATE: ${currentDate}
-TIME: ${new Date().toLocaleTimeString()}
----
-USER QUESTION: ${question}
+  return `${recent ? `Recent conversation:\n${recent}\n\n` : ''}USER QUESTION: ${question}
 
-MANDATORY: Provide a COMPLETE and DETAILED response. Do NOT cut off. Ensure you are answering based on the year 2026.`;
+Remember: answer in 80-120 words max, plain text, no markdown.`;
 }

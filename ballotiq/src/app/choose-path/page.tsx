@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, MessageSquare, Map, Mic, Globe } from 'lucide-react';
 import TranslatedText from '@/components/ui/TranslatedText';
+import LanguageSelector from '@/components/ui/LanguageSelector';
 import type { Country, UserContext } from '@/types';
 
 /**
@@ -53,14 +54,19 @@ export default function ChoosePathPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 flex flex-col items-center justify-center p-6 relative">
-      {/* Back Button */}
-      <button 
-        onClick={() => router.push('/#country-selection')}
-        className="absolute top-8 left-8 p-3 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
-        aria-label="Back to home"
-      >
-        <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
-      </button>
+      {/* Navigation Header */}
+      <nav className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-50">
+        <button 
+          onClick={() => router.push('/#country-selection')}
+          className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
+          aria-label="Back to home"
+        >
+          <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 group-hover:-translate-x-1 transition-transform" />
+        </button>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <LanguageSelector />
+        </div>
+      </nav>
 
       <div className="max-w-4xl w-full text-center space-y-12 animate-in slide-in-from-bottom-8 duration-700">
         <div className="space-y-4">
@@ -137,12 +143,14 @@ export default function ChoosePathPage() {
           </button>
         </div>
 
-        <button 
-          onClick={() => router.push('/#country-selection')}
-          className="text-sm text-gray-500 hover:text-white transition-colors underline underline-offset-4"
-        >
-          <TranslatedText text="Change Country" />
-        </button>
+        <div className="pt-8">
+          <button 
+            onClick={() => router.push('/#country-selection')}
+            className="px-6 py-3 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all shadow-lg text-sm font-semibold"
+          >
+            <TranslatedText text="Change Country" />
+          </button>
+        </div>
       </div>
     </div>
   );

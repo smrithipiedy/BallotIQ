@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import type { MicroQuizQuestion } from '@/types';
 import TTSButton from '@/components/ui/TTSButton';
 import SafeHTML from '@/components/ui/SafeHTML';
+import TranslatedText from '@/components/ui/TranslatedText';
 
 interface MicroQuizProps {
   question: MicroQuizQuestion | null;
@@ -66,9 +67,11 @@ export default function MicroQuiz({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3 h-3" />
-            Quick Check
+            <TranslatedText text="Quick Check" />
           </div>
-          <h3 className="text-lg font-semibold text-white">{question.question}</h3>
+          <h3 className="text-lg font-semibold text-white">
+            <TranslatedText text={question.question} />
+          </h3>
           {onSpeak && (
             <TTSButton
               text={question.question}
@@ -113,7 +116,7 @@ export default function MicroQuiz({
                 aria-label={`Option ${index + 1}: ${option}`}
                 aria-pressed={isSelected}
               >
-                <span>{option}</span>
+                <TranslatedText text={option} />
                 {showResult && isCorrectOption && <CheckCircle2 className="w-4 h-4" />}
                 {showResult && isWrongSelection && <XCircle className="w-4 h-4" />}
               </button>
@@ -129,11 +132,15 @@ export default function MicroQuiz({
               <Lightbulb className={`w-5 h-5 flex-shrink-0 ${isCorrect ? 'text-emerald-400' : 'text-amber-400'}`} />
               <div className="space-y-1">
                 <p className={`text-sm font-bold ${isCorrect ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {isCorrect ? 'Excellent!' : 'Not quite right'}
+                  {isCorrect ? <TranslatedText text="Excellent!" /> : <TranslatedText text="Not quite right" />}
                 </p>
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  {isCorrect ? 'You have a solid understanding of this concept.' : explanation}
-                </p>
+                <div className="text-sm text-gray-300 leading-relaxed">
+                  {isCorrect ? (
+                    <TranslatedText text="You have a solid understanding of this concept." />
+                  ) : (
+                    <TranslatedText text={explanation || ''} />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -141,12 +148,12 @@ export default function MicroQuiz({
               <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl space-y-3">
                 <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
                   <Brain className="w-3 h-3" />
-                  Adaptive Reinforcement
+                  <TranslatedText text="Adaptive Reinforcement" />
                 </div>
                 {isReExplaining ? (
                   <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    AI is preparing a simpler explanation...
+                    <TranslatedText text="AI is preparing a simpler explanation..." />
                   </div>
                 ) : reExplanation ? (
                   <div className="text-sm text-gray-300 leading-relaxed prose prose-invert max-w-none">
@@ -164,7 +171,7 @@ export default function MicroQuiz({
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
               aria-label="Continue to next step"
             >
-              Continue Learning
+              <TranslatedText text="Continue Learning" />
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

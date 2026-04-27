@@ -18,7 +18,16 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const [language, setLang] = useState<SupportedLanguage>('en');
   const [isTranslating, setIsTranslating] = useState(false);
 
+  // Initialize from storage on mount
+  React.useEffect(() => {
+    const saved = localStorage.getItem('ballotiq_lang') as SupportedLanguage;
+    if (saved && ['en', 'hi', 'te', 'ta', 'fr', 'es', 'de', 'pt'].includes(saved)) {
+      setLang(saved);
+    }
+  }, []);
+
   const setLanguage = useCallback((lang: SupportedLanguage) => {
+    localStorage.setItem('ballotiq_lang', lang);
     clearTranslationCache();
     setLang(lang);
     console.info(`[Translation] Language changed to: ${lang}. Cache cleared.`);
