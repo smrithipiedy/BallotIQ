@@ -75,7 +75,7 @@ describe('MicroQuiz', () => {
         onContinue={onContinue}
       />
     );
-    expect(screen.getByText(/Correct! Great understanding/i)).toBeInTheDocument();
+    expect(screen.getByText(/Excellent!/i)).toBeInTheDocument();
   });
 
   it('shows error feedback and re-explanation when isCorrect is false', () => {
@@ -112,7 +112,7 @@ describe('MicroQuiz', () => {
         onContinue={onContinue}
       />
     );
-    fireEvent.click(screen.getByText(/Continue →/i));
+    fireEvent.click(screen.getByText(/Continue Learning/i));
     expect(onContinue).toHaveBeenCalled();
   });
 
@@ -131,8 +131,12 @@ describe('MicroQuiz', () => {
         onContinue={onContinue}
       />
     );
-    expect(screen.queryByText(/Most countries use this age/i)).not.toBeInTheDocument();
+    // Hint is present but hidden
+    const hint = screen.getByText(/Most countries use this age/i);
+    const container = hint.closest('div[id^="hint-"]');
+    expect(container).toHaveClass('hidden');
+    
     fireEvent.click(screen.getByLabelText(/Show hint/i));
-    expect(screen.getByText(/Most countries use this age/i)).toBeInTheDocument();
+    expect(container).not.toHaveClass('hidden');
   });
 });

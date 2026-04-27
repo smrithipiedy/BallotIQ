@@ -43,8 +43,9 @@ export function buildPersonalizedGuidePrompt(
   knowledgeLevel: KnowledgeLevel,
   focusAreas: string[],
   userConfusion: string,
+  stepCountParam?: number,
 ): string {
-  const stepCount = knowledgeLevel === 'beginner' ? 6 : knowledgeLevel === 'intermediate' ? 8 : 10;
+  const stepCount = stepCountParam ?? (knowledgeLevel === 'beginner' ? 6 : knowledgeLevel === 'intermediate' ? 8 : 10);
 
   const depthSpec = knowledgeLevel === 'advanced'
     ? `ADVANCED DEPTH REQUIREMENTS (strictly enforced):
@@ -173,7 +174,7 @@ ${stepDetails}
 Each question object: {"id":"q1","question":"...","options":["A","B","C","D"],"correctIndex":0,"explanation":"...","difficulty":"easy|medium|hard","relatedStepId":"..."}
 CRITICAL: Use realistic scenarios (e.g., "If a voter is at the booth and X happens...") to test actual application of knowledge.
 MANDATORY: Every question MUST be unique. Do NOT repeat the same concept, fact, or micro-quiz question.
-Respond ONLY with a JSON array of 10 unique question objects. No markdown.`;
+Respond ONLY with a JSON array of 5 unique question objects. No markdown.`;
 }
 
 /**
@@ -184,6 +185,9 @@ export function buildAssistantSystemPrompt(
   completedSteps: ElectionStep[],
   messageCount: number,
 ): string {
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+  });
   const steps = completedSteps.map((s) => s.title).join(', ');
   const depthNote = userContext.knowledgeLevel === 'advanced'
     ? 'Be precise. Reference specific laws, articles, or procedures by name when relevant.'
@@ -196,18 +200,19 @@ export function buildAssistantSystemPrompt(
     : 'Do NOT greet. Get straight to the answer.';
 
   return `You are BallotIQ, a friendly non-partisan election guide for ${userContext.countryName}.
+Current Date: ${currentDate}.
 
-User: ${userContext.knowledgeLevel} level, confused about "${userContext.mainConfusion}". Studied: ${steps || 'nothing yet'}.
+CONTEXT: User is ${userContext.knowledgeLevel} level in ${userContext.countryName}. Initial concern: "${userContext.mainConfusion}".
 
 RULES (strictly follow):
-1. Answer ONLY in 2-4 short paragraphs, 80-120 words total. No exceptions.
+1. Answer the CURRENT QUESTION completely in full, professional sentences. 
 2. ${depthNote}
 3. ${greeting}
-4. Plain text only — no **, no #, no bullet symbols, no markdown.
-5. Be direct, warm, and clear. Never say "Great question" or similar filler.
-6. If unsure, say so briefly and point to the official election body.
-7. Stay on ${userContext.countryName} elections only. Politely redirect if asked otherwise.
-8. Never express political opinions.`;
+4. Plain text only — NO bold (**), NO headings (#). Simple numbered or bullet lists are okay.
+5. Be direct and relevant. Do not talk about the "Initial concern" unless the current question is related to it.
+6. If unsure, say so and point to the official election body.
+7. Stay on ${userContext.countryName} elections only.
+8. Never express political opinions. Always be non-partisan.`;
 }
 
 /**

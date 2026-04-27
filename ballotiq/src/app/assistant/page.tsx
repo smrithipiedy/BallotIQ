@@ -33,6 +33,17 @@ export default function AssistantPage() {
       const stored = sessionStorage.getItem('ballotiq_context');
       if (stored) {
         const ctx = JSON.parse(stored) as UserContext;
+        
+        // Hydrate missing metadata for legacy sessions
+        if (!ctx.electionBody || !ctx.electionBodyUrl) {
+          const countryData = getCountryByCode(ctx.countryCode);
+          if (countryData) {
+            ctx.electionBody = countryData.electionBody;
+            ctx.electionBodyUrl = countryData.electionBodyUrl;
+            sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
+          }
+        }
+
         setUserContext(ctx);
         const fallback = getFallbackGuide(ctx.countryCode, ctx.knowledgeLevel);
         setCompletedSteps(fallback ?? []);
@@ -100,12 +111,7 @@ export default function AssistantPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {aiActive && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest transition-all">
-                <Zap className="w-3 h-3" />
-                <TranslatedText text="BallotIQ AI Active" />
-              </div>
-            )}
+
             <LanguageSelector />
           </div>
         </div>
@@ -116,7 +122,7 @@ export default function AssistantPage() {
         <p className="text-[11px] text-amber-400/80 text-center max-w-2xl mx-auto">
           <TranslatedText text="BallotIQ provides educational information only. For official guidance, visit" />{' '}
           <a
-            href={countryInfo?.electionBodyUrl || `https://www.google.com/search?q=${userContext.countryName}+election+commission`}
+            href={countryInfo?.electionBodyUrl || `https://www.google.com/search?q=${encodeURIComponent(userContext.countryName + ' official election website')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-amber-300 font-bold"

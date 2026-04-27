@@ -42,9 +42,7 @@ import { logger } from '@/lib/logger';
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? '';
 const isGeminiEnabled =
   Boolean(API_KEY) &&
-  API_KEY !== 'YOUR_GEMINI_API_KEY' &&
-  API_KEY !== 'your_gemini_api_key_here' &&
-  API_KEY.length > 10;
+  API_KEY.length > 5;
 
 /**
  * Model priority order for free tier.
@@ -53,12 +51,11 @@ const isGeminiEnabled =
  * gemini-1.5-flash: Most stable fallback.
  */
 const MODELS_TO_TRY = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-2.5-pro',
-  'gemini-2.0-flash-001',
+  'models/gemini-2.5-flash',
+  'models/gemini-2.5-flash-lite',
+  'models/gemini-3.1-flash',
+  'models/Gemma-4-31B',
+  'models/Gemma-4-26B'
 ] as const;
 
 // Initialize genAI once
@@ -80,12 +77,12 @@ async function callGemini(
   maxTokens: number = 512
 ): Promise<string | null> {
   if (!isGeminiEnabled) {
-    console.warn('[Gemini] API Key missing or invalid.');
+    logger.warn('[Gemini] API Key missing or invalid.', { component: 'GeminiClient' });
     return null;
   }
 
-  const models = lite ? ['gemini-2.5-flash-lite', 'gemini-2.5-flash'] : MODELS_TO_TRY;
-  const retryDelays = lite ? [1000] : [2000, 5000];
+  const models = MODELS_TO_TRY;
+  const retryDelays = [1000, 2000];
 
   for (const modelId of models) {
     try {
@@ -100,7 +97,15 @@ async function callGemini(
 
       for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
         try {
-          const result = await model.generateContent(prompt);
+          const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            safetySettings: [
+              { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            ] as any,
+          });
           const response = await result.response;
           const text = response.text();
 
@@ -108,9 +113,9 @@ async function callGemini(
             await incrementUsage(sessionId, 'gemini');
             return text;
           }
-        } catch (error: any) {
-          const status = error?.status;
-          const message = error?.message || '';
+        } catch (error: unknown) {
+          const status = (error as { status?: number })?.status;
+          const message = (error as { message?: string })?.message || '';
 
           // 404: Model not available in this region/key
           if (status === 404) {
@@ -137,8 +142,14 @@ async function callGemini(
           break; // Move to next model
         }
       }
-    } catch (modelError) {
-      logger.error('Failed to initialize model', modelError, { component: 'GeminiClient', modelId });
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error';
+      logger.error(`Gemini call failed for model ${modelId}: ${msg}`, err);
+      // Surface quota issues to console for debugging
+      if (msg.includes('quota') || msg.includes('429')) {
+        console.error(`[BallotIQ] Gemini Quota Exceeded for ${modelId}. Check your API plan at ai.google.dev`);
+      }
+      // Continue to next model
     }
   }
 
@@ -153,7 +164,7 @@ async function callGeminiQuiz(
   sessionId: string,
 ): Promise<string | null> {
   if (!isGeminiEnabled) return null;
-  const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+  const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash'];
 
   for (const modelId of models) {
     try {
@@ -170,8 +181,8 @@ async function callGeminiQuiz(
         await incrementUsage(sessionId, 'gemini');
         return text;
       }
-    } catch (err) {
-      console.warn(`[GeminiQuiz] ${modelId} failed:`, err);
+    } catch (err: unknown) {
+      logger.warn(`[GeminiQuiz] ${modelId} failed:`, { error: (err as Error).message, modelId });
     }
   }
   return null;
@@ -210,6 +221,7 @@ export async function generatePersonalizedGuide(
   focusAreas: string[],
   userConfusion: string,
   sessionId?: string,
+  stepCount?: number,
 ): Promise<{ steps: ElectionStep[]; source: 'gemini' | 'cache' | 'fallback' }> {
   return withTrace(
     'gemini_generate_guide',
@@ -228,7 +240,7 @@ export async function generatePersonalizedGuide(
       } catch { /* ignore cache errors */ }
 
       const prompt = buildPersonalizedGuidePrompt(
-        countryCode, countryName, knowledgeLevel, focusAreas, userConfusion,
+        countryCode, countryName, knowledgeLevel, focusAreas, userConfusion, stepCount
       );
       const raw = await callGemini(prompt, sessionId ?? 'guide', false, undefined, 2048);
       if (raw) {
@@ -387,12 +399,12 @@ export async function askAssistant(
       const userMessage = buildAssistantUserMessage(question, chatHistory);
 
       try {
-        // 300 tokens enforces concise replies; lite=true picks the fastest model
-        const raw = await callGemini(userMessage, userContext.sessionId, true, systemPrompt, 300);
+        // 800 tokens ensures complete, unabridged replies
+        const raw = await callGemini(userMessage, userContext.sessionId, false, systemPrompt, 800);
         if (raw) return sanitizeAIResponse(raw);
-        return 'BallotIQ AI is at capacity right now. Please try again in a moment.';
-      } catch (err) {
-        logger.error('Assistant API call failed', err, { component: 'GeminiClient', sessionId: userContext.sessionId });
+        return 'The AI assistant is temporarily unavailable. Please try your question again in a moment or check your connection.';
+      } catch (err: unknown) {
+        logger.error('Assistant API call failed', err as Error, { component: 'GeminiClient', sessionId: userContext.sessionId });
         throw err;
       }
     }

@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { getFirestoreDB, authReady } from './client';
 import { withTrace } from './performance';
+import { logger } from '@/lib/logger';
 import type {
   UserContext,
   ElectionStep,
@@ -38,7 +39,7 @@ export async function saveUserContext(context: UserContext): Promise<void> {
     const ref = doc(db, 'sessions', context.sessionId, 'context', 'current');
     await setDoc(ref, context, { merge: true });
   } catch (error) {
-    console.error('[Firestore] Failed to save user context:', error);
+    logger.error('[Firestore] Failed to save user context:', error, { component: 'Firestore' });
   }
 }
 
@@ -55,7 +56,7 @@ export async function getUserContext(sessionId: string): Promise<UserContext | n
     const snap = await getDoc(ref);
     return snap.exists() ? (snap.data() as UserContext) : null;
   } catch (error) {
-    console.error('[Firestore] Failed to get user context:', error);
+    logger.error('[Firestore] Failed to get user context:', error, { component: 'Firestore' });
     return null;
   }
 }
@@ -87,7 +88,7 @@ export async function cacheElectionGuide(
 
     await setDoc(ref, entry);
   } catch (error) {
-    console.error('[Firestore] Failed to cache election guide:', error);
+    logger.error('[Firestore] Failed to cache election guide:', error, { component: 'Firestore' });
   }
 }
 

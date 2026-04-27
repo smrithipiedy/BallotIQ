@@ -59,7 +59,7 @@ describe('StepCard', () => {
       />
     );
     expect(screen.getByText('Test Step')).toBeInTheDocument();
-    expect(screen.getByText('Regular description')).toBeInTheDocument();
+    expect(screen.getByText('Detailed explanation for beginners')).toBeInTheDocument();
   });
 
   it('shows simpleExplanation when adaptationActive is true', () => {
@@ -110,7 +110,7 @@ describe('StepCard', () => {
         currentSpokenText={null}
       />
     );
-    fireEvent.click(screen.getByText(/Mark Complete/i));
+    fireEvent.click(screen.getByText(/Mark as Complete/i));
     expect(onComplete).toHaveBeenCalled();
   });
 
@@ -203,6 +203,6 @@ describe('StepCard', () => {
         currentSpokenText={null}
       />
     );
-    expect(screen.queryByText(/Mark Complete/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mark as Complete/i)).not.toBeInTheDocument();
   });
 });

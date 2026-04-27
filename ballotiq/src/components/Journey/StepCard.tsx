@@ -73,7 +73,7 @@ export default function StepCard({
           <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold flex-shrink-0 ${
             isCompleted ? 'bg-emerald-500 text-white' : isActive ? 'bg-blue-500 text-white' : 'bg-white/10 text-gray-400'
           }`}>
-            {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : step.order}
+            {isCompleted ? <CheckCircle2 className="w-5 h-5" data-testid="check-circle" /> : step.order}
           </span>
           <div>
             <h3 className={`text-lg font-semibold ${isCompleted ? 'text-emerald-300' : 'text-white'}`}>
@@ -91,36 +91,6 @@ export default function StepCard({
           </span>
         )}
       </div>
-
-      {/* Confusion Callout — shown when using fallback content and user has a relevant stated confusion */}
-      {(() => {
-        if (!isFallbackContent || !userConfusion || userConfusion.trim().length < 5) return null;
-        
-        // Generic or non-specific confusion strings to ignore
-        const genericPlaceholders = ['none', 'nothing', 'general election process', 'the whole process', 'everything'];
-        if (genericPlaceholders.includes(userConfusion.toLowerCase().trim())) return null;
-
-        // Simple relevance check: do they share any significant keywords?
-        const stepText = `${step.title} ${content}`.toLowerCase();
-        const keywords = userConfusion.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-        const isRelevant = keywords.some(k => stepText.includes(k));
-
-        if (!isRelevant) return null;
-
-        return (
-          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/25 rounded-xl flex gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-semibold text-amber-400 mb-0.5">
-                <TranslatedText text="Your Question:" /> &ldquo;<TranslatedText text={userConfusion} />&rdquo;
-              </p>
-              <p className="text-xs text-amber-300/70">
-                <TranslatedText text="Live AI content addressing this couldn't load. Offline content is shown. Check back online for a tailored explanation." />
-              </p>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Main Content */}
       <div className="space-y-4">

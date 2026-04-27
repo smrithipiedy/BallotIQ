@@ -84,6 +84,7 @@ export function useElectionGuide(
           [userContext!.mainConfusion || 'general election process'],
           userContext!.mainConfusion || '',
           userContext!.sessionId,
+          userContext!.recommendedStepCount,
         );
 
         clearTimeout(timeoutId);

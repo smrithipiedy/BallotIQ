@@ -117,12 +117,33 @@ export default function MicroQuiz({
                 aria-pressed={isSelected}
               >
                 <TranslatedText text={option} />
-                {showResult && isCorrectOption && <CheckCircle2 className="w-4 h-4" />}
-                {showResult && isWrongSelection && <XCircle className="w-4 h-4" />}
+                {showResult && isCorrectOption && <CheckCircle2 className="w-4 h-4" data-testid="check-circle" />}
+                {showResult && isWrongSelection && <XCircle className="w-4 h-4" data-testid="x-circle" />}
               </button>
             );
           })}
         </div>
+
+        {!showResult && question.hint && (
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => {
+                const hintEl = document.getElementById(`hint-${question.question.substring(0, 5)}`);
+                if (hintEl) hintEl.classList.toggle('hidden');
+                onInteraction?.();
+              }}
+              className="text-[10px] font-bold text-blue-400/60 hover:text-blue-400 uppercase tracking-[0.2em] transition-colors"
+              aria-label="Show hint"
+            >
+              <TranslatedText text="Need a hint?" />
+            </button>
+            <div id={`hint-${question.question.substring(0, 5)}`} className="hidden animate-in fade-in slide-in-from-top-1">
+              <p className="text-[11px] text-gray-500 italic text-center px-4 leading-relaxed">
+                <TranslatedText text={question.hint} />
+              </p>
+            </div>
+          </div>
+        )}
 
         {showResult && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-500 space-y-4">

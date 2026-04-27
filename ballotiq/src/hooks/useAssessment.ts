@@ -8,10 +8,12 @@
 import { useState, useCallback } from 'react';
 import type { AssessmentAnswer, AssessmentPhase, KnowledgeLevel, UserContext } from '@/types';
 import { analyzeAssessment } from '@/lib/gemini/client';
+import { analyzeAssessmentLocally } from '@/lib/assessment/analyzer';
 import { saveUserContext } from '@/lib/firebase/firestore';
 import { authReady } from '@/lib/firebase/client';
 import { logAssessmentComplete } from '@/lib/firebase/analytics';
 import { sanitizeUserInput } from '@/lib/security/sanitize';
+import { getCountryByCode } from '@/lib/constants/countries';
 
 interface UseAssessmentReturn {
   phase: AssessmentPhase;
@@ -43,6 +45,7 @@ export function useAssessment(
 
   const answerQuestion = useCallback(async (answer: boolean | number | string) => {
     const updated = { ...answers };
+    const countryData = getCountryByCode(countryCode);
 
     if (currentQuestion === 0) {
       updated.hasVotedBefore = answer as boolean;
@@ -66,7 +69,19 @@ export function useAssessment(
           mainConfusion: updated.mainConfusion ?? '',
         };
 
-        const result = await analyzeAssessment(complete, countryCode, countryName);
+        // Get local analysis first (Instant)
+        const localResult = analyzeAssessmentLocally(complete);
+
+        // Try AI analysis in parallel
+        let finalLevel = localResult.knowledgeLevel;
+        let finalStepCount = localResult.recommendedStepCount;
+        try {
+          const aiResult = await analyzeAssessment(complete, countryCode, countryName);
+          finalLevel = aiResult.knowledgeLevel;
+          finalStepCount = aiResult.recommendedStepCount;
+        } catch {
+          console.warn('[Assessment] AI analysis failed, using local result');
+        }
 
         const ctx: UserContext = {
           sessionId,
@@ -75,15 +90,18 @@ export function useAssessment(
           hasVotedBefore: complete.hasVotedBefore,
           selfRatedKnowledge: complete.selfRatedKnowledge,
           mainConfusion: complete.mainConfusion,
-          knowledgeLevel: result.knowledgeLevel,
+          knowledgeLevel: finalLevel,
+          recommendedStepCount: finalStepCount,
           language: 'en',
           adaptationActive: false,
           consecutiveErrors: 0,
+          electionBody: countryData?.electionBody,
+          electionBodyUrl: countryData?.electionBodyUrl,
         };
 
         await authReady;
         await saveUserContext(ctx);
-        await logAssessmentComplete(result.knowledgeLevel, countryCode);
+        await logAssessmentComplete(finalLevel, countryCode);
         setUserContext(ctx);
         setPhase('complete');
       } catch (error) {
@@ -96,6 +114,8 @@ export function useAssessment(
           mainConfusion: updated.mainConfusion ?? '',
           knowledgeLevel: fallbackLevel,
           language: 'en', adaptationActive: false, consecutiveErrors: 0,
+          electionBody: countryData?.electionBody,
+          electionBodyUrl: countryData?.electionBodyUrl,
         };
         setUserContext(ctx);
         setPhase('complete');

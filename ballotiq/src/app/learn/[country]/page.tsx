@@ -29,6 +29,7 @@ import MicroQuiz from '@/components/Journey/MicroQuiz';
 import { ProactiveSuggestionBanner } from '@/components/Journey/ProactiveSuggestionBanner';
 import PollingStationFinder from '@/components/Location/PollingStationFinder';
 import LanguageSelector from '@/components/ui/LanguageSelector';
+import AIStatusBadge from '@/components/ui/AIStatusBadge';
 
 /**
  * Older design of the Learn page — Optimized for unified UI.
@@ -48,7 +49,19 @@ export default function LearnPage() {
       router.push('/');
       return;
     }
-    setUserContext(JSON.parse(stored) as UserContext);
+    const ctx = JSON.parse(stored) as UserContext;
+    
+    // Hydrate missing metadata for legacy sessions
+    if (!ctx.electionBody || !ctx.electionBodyUrl) {
+      const countryData = getCountryByCode(ctx.countryCode);
+      if (countryData) {
+        ctx.electionBody = countryData.electionBody;
+        ctx.electionBodyUrl = countryData.electionBodyUrl;
+        sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
+      }
+    }
+    
+    setUserContext(ctx);
   }, [router]);
 
   const country = useMemo(() => getCountryByCode(countryCode), [countryCode]);
@@ -167,12 +180,7 @@ export default function LearnPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            {aiActive && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest transition-all">
-                <Zap className="w-3 h-3" />
-                <TranslatedText text="BallotIQ AI Active" />
-              </div>
-            )}
+            <AIStatusBadge mode={guideSource === 'gemini' ? 'live' : guideSource === 'cache' ? 'cached' : 'error'} className="hidden sm:inline-flex" />
             {adaptationActive && (
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest">
                 <Sparkles className="w-3 h-3" />

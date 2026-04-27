@@ -28,7 +28,7 @@ export default function AssessPage() {
     setMounted(true);
     const stored = sessionStorage.getItem('ballotiq_country');
     if (stored) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setCountry(JSON.parse(stored) as Country);
     } else {
       router.push('/');

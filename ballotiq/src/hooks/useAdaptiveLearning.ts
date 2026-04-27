@@ -59,25 +59,28 @@ export function useAdaptiveLearning(
       return;
     }
 
-    const newErrors = consecutiveErrors + 1;
-    setConsecutiveErrors(newErrors);
-
-    // Trigger adaptation after threshold
-    if (newErrors >= ADAPTATION_THRESHOLD && !adaptationActive) {
-      setAdaptationActive(true);
-      if (userContext) {
-        const updatedCtx = { ...userContext, adaptationActive: true, consecutiveErrors: newErrors };
-        await saveUserContext(updatedCtx);
-        await logAdaptationTriggered('consecutive_errors', currentStepIndex);
+    setConsecutiveErrors((prev) => {
+      const next = prev + 1;
+      // Trigger adaptation after threshold
+      if (next >= ADAPTATION_THRESHOLD && !adaptationActive) {
+        setAdaptationActive(true);
+        if (userContext) {
+          const updatedCtx = { ...userContext, adaptationActive: true, consecutiveErrors: next };
+          saveUserContext(updatedCtx).catch(console.error);
+          logAdaptationTriggered('consecutive_errors', currentStepIndex).catch(console.error);
+        }
       }
-    }
+      return next;
+    });
+
+    const isNowAdaptive = adaptationActive || (consecutiveErrors + 1 >= ADAPTATION_THRESHOLD);
 
     // Fetch re-explanation from Gemini
     setIsReExplaining(true);
     try {
       const explanation = await reExplainConcept(
         step, userAnswer, correctAnswer,
-        adaptationActive || newErrors >= ADAPTATION_THRESHOLD ? 'beginner' : (userContext?.knowledgeLevel ?? 'beginner'),
+        isNowAdaptive ? 'beginner' : (userContext?.knowledgeLevel ?? 'beginner'),
         userContext?.sessionId
       );
       setReExplanation(explanation);

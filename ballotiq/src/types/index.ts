@@ -51,6 +51,9 @@ export interface UserContext {
   language: SupportedLanguage;
   adaptationActive: boolean;
   consecutiveErrors: number;
+  recommendedStepCount?: number;
+  electionBody?: string;
+  electionBodyUrl?: string;
 }
 
 /** A single step in the election learning path */
@@ -92,6 +95,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isLoading?: boolean;
+  officialSource?: { name: string; url: string };
 }
 
 /** A question in the final certification quiz */

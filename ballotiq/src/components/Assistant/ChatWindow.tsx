@@ -9,7 +9,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Mic, MicOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import type { ChatMessage, ElectionStep, UserContext } from '@/types';
-import { askAssistant } from '@/lib/gemini/client';
+import { getAssistantResponse } from '@/lib/assistant/hybridAssistant';
 import { saveChatMessage } from '@/lib/firebase/firestore';
 import { logAssistantQuestion } from '@/lib/firebase/analytics';
 import { sanitizeUserInput } from '@/lib/security/sanitize';
@@ -18,6 +18,8 @@ import { getLanguageInfo } from '@/lib/constants/languages';
 import TTSButton from '@/components/ui/TTSButton';
 import TranslatedText from '@/components/ui/TranslatedText';
 import SuggestedQuestions from './SuggestedQuestions';
+import AIStatusBadge from '@/components/ui/AIStatusBadge';
+import { ExternalLink } from 'lucide-react';
 
 interface ChatWindowProps {
   userContext: UserContext;
@@ -78,17 +80,18 @@ export default function ChatWindow({
       await saveChatMessage(userContext.sessionId, userMsg);
       await logAssistantQuestion(userContext.countryCode, userContext.knowledgeLevel);
 
-      const response = await askAssistant(sanitized, userContext, completedSteps, messages);
+      const result = await getAssistantResponse(sanitized, userContext, completedSteps, messages);
+      const response = result.content;
 
       // Detect AI failure responses
-      const isAiFailure = response.includes('at capacity') || response.includes('offline') || response.includes('limit reached');
-      onAiStatusChange?.(!isAiFailure);
+      onAiStatusChange?.(result.source !== 'error');
 
       const assistantMsg: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
         role: 'assistant',
         content: response,
         timestamp: new Date().toISOString(),
+        officialSource: result.officialSource,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -124,10 +127,11 @@ export default function ChatWindow({
     <ErrorBoundary componentName="ChatWindow">
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-white/10">
+        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <p className="text-xs text-gray-500">
             <TranslatedText text="Personalized for" /> {userContext.countryName} • <TranslatedText text={userContext.knowledgeLevel} /> <TranslatedText text="level" />
           </p>
+          <AIStatusBadge mode={isLoading ? 'live' : 'cached'} />
         </div>
 
         {/* Messages */}
@@ -172,8 +176,17 @@ export default function ChatWindow({
               }`}>
                 <p className="whitespace-pre-wrap"><TranslatedText text={msg.content} /></p>
                 {msg.role === 'assistant' && (
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <TTSButton text={msg.content} isSpeaking={isSpeaking} currentText={currentSpokenText} onToggle={onSpeak} />
+                    <a 
+                      href={msg.officialSource?.url || userContext.electionBodyUrl || `https://www.google.com/search?q=${encodeURIComponent(userContext.countryName + ' official election website')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/10 px-2 py-1 rounded-md"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <TranslatedText text={msg.officialSource?.name || userContext.electionBody || "Official Source"} />
+                    </a>
                   </div>
                 )}
               </div>

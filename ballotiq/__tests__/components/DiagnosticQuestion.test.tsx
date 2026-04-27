@@ -62,6 +62,6 @@ describe('DiagnosticQuestion', () => {
 
   it('disables inputs when loading', () => {
     render(<DiagnosticQuestion questionNumber={1} onAnswer={onAnswer} isLoading={true} />);
-    expect(screen.getByText('Yes, I have')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Yes, I have/i })).toBeDisabled();
   });
 });

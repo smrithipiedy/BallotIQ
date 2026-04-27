@@ -59,6 +59,20 @@ const IN_BEGINNER: ElectionStep[] = [
     ['EPIC Card or 12 alternative Photo IDs', 'Polling station location', 'Voter Slip (optional but helpful)', 'Indelible ink mark'],
     ['Go early to avoid long queues', 'Check your booth number online', 'Maintain silence and discipline', 'Cooperate with security personnel'],
     'Where is the indelible ink applied?', ['Left index finger', 'Right thumb', 'Left thumb', 'Forehead'], 0, 'It is a visible mark on your hand.'),
+  step('in_b6', 6, 'Model Code of Conduct', 'Rules for parties and candidates.',
+    'The Model Code of Conduct (MCC) is a set of guidelines issued by the Election Commission of India for the conduct of political parties and candidates during elections. It comes into force immediately after the announcement of the election schedule. It aims to ensure free and fair elections by preventing the misuse of official machinery and ensuring that parties do not appeal to caste or communal sentiments to gain votes.',
+    'The MCC is like the "rules of the game" for politicians.',
+    'Announcement of Election',
+    ['Knowledge of local restrictions', 'Reporting MCC violations', 'C-Vigil app usage'],
+    ['Use the C-Vigil app to report violations in real-time', 'Be aware of the "silent period" (48 hours before polls)', 'Do not accept any inducements or bribes for your vote', 'Follow the news for official ECI briefings'],
+    'When does the MCC come into force?', ['Day of voting', 'Announcement of schedule', 'Month before', 'After counting'], 1, 'Immediate enforcement ensures fairness.'),
+  step('in_b7', 7, 'Counting and Results', 'How the winners are decided.',
+    'Counting of votes is done under the supervision of the Returning Officer (RO) at a designated counting center. EVMs and VVPATs are brought from the strongrooms where they were kept under heavy security. The votes are counted round by round. In case of any discrepancy, a mandatory verification of VVPAT slips from five randomly selected polling stations per constituency is performed. The candidate with the highest number of votes is declared the winner.',
+    'Every vote is counted securely to decide the winner.',
+    'Counting Day',
+    ['Patience during counting rounds', 'Official result verification', 'Understanding the mandate'],
+    ['Follow live results on the ECI website', 'Ignore rumors on social media during counting', 'A plurality of votes is enough to win', 'Respect the final democratic outcome'],
+    'Who supervises the counting?', ['Police Chief', 'Returning Officer', 'Chief Minister', 'Mayor'], 1, 'The RO is the key official.'),
 ];
 
 // --- USA (US) ---
@@ -98,9 +112,24 @@ const US_BEGINNER: ElectionStep[] = [
     ['Valid ID (depends on state)', 'Mail-in ballot application', 'Poll worker assistance'],
     ['If you are in line when polls close, stay in line!', 'Use secure drop boxes for mail ballots', 'Check your polling place location yearly', 'Volunteer as a poll worker'],
     'When is the General Election held?', ['Monday', 'Tuesday after first Monday', 'Friday', 'Sunday'], 1, 'It is always a Tuesday.'),
+  step('us_b6', 6, 'Voter ID Laws', 'State-specific ID rules.',
+    'Voter ID laws vary significantly by state. Some states require a photo ID (like a driver\'s license), while others accept non-photo ID (like a utility bill or bank statement). Some states have no ID requirement at all. If you don\'t have the required ID on election day, you may be able to cast a "provisional ballot," which will be counted once your eligibility is verified.',
+    'Check if your state requires a photo ID or just a bill.',
+    'Election Day',
+    ['State-approved ID', 'Provisional ballot knowledge', 'ID exception forms'],
+    ['Check Vote411.org for your state\'s ID rules', 'Get a free state ID for voting if needed', 'Keep a digital copy of your ID on your phone', 'Bring your poll card just in case'],
+    'Which ID is almost always accepted?', ['Library card', 'Driver\'s License', 'Club card', 'None'], 1, 'It is the most common form of ID.'),
+  step('us_b7', 7, 'After You Vote', 'Counting and certification.',
+    'After polls close, election officials begin counting ballots. Results are often reported on election night, but they are "unofficial" until every ballot—including mail-in and provisional—is counted and the election is "certified." This process can take several days or even weeks. Once certified, the winners are officially declared and prepare for their inauguration in January.',
+    'Counting takes time to ensure every vote is correct.',
+    'Election Night to Certification',
+    ['Patience!', 'Result tracking on official sites', 'Certification deadlines'],
+    ['Don\'t rely solely on media "calls" for final results', 'Check your Secretary of State\'s website for updates', 'Understand that mail-in ballots take longer to count', 'Celebrate your participation in democracy!'],
+    'Is the election night result final?', ['Yes', 'No', 'Only for President', 'Only in DC'], 1, 'It is unofficial until certified.'),
 ];
 
 // --- UNITED KINGDOM (GB) ---
+
 const GB_BEGINNER: ElectionStep[] = [
   step('gb_b1', 1, 'Am I Eligible to Vote?', 'UK voter eligibility rules.',
     'To vote in a UK General Election, you must be a British, Irish, or qualifying Commonwealth citizen. You must also be 18 years or older on polling day and resident in the UK. Some UK citizens living abroad can also register as overseas voters. You must not be a convicted prisoner or otherwise legally disqualified from voting.',
@@ -375,15 +404,15 @@ const CA_BEGINNER: ElectionStep[] = [
 
 // --- FALLBACK REGISTRY ---
 export const FALLBACK_GUIDES: Record<string, Record<KnowledgeLevel, ElectionStep[]>> = {
-  IN: { beginner: IN_BEGINNER, intermediate: IN_BEGINNER, advanced: IN_BEGINNER },
-  US: { beginner: US_BEGINNER, intermediate: US_BEGINNER, advanced: US_BEGINNER },
-  GB: { beginner: GB_BEGINNER, intermediate: GB_BEGINNER, advanced: GB_BEGINNER },
-  SA: { beginner: SA_BEGINNER, intermediate: SA_BEGINNER, advanced: SA_BEGINNER },
-  FR: { beginner: FR_BEGINNER, intermediate: FR_BEGINNER, advanced: FR_BEGINNER },
-  DE: { beginner: DE_BEGINNER, intermediate: DE_BEGINNER, advanced: DE_BEGINNER },
-  BR: { beginner: BR_BEGINNER, intermediate: BR_BEGINNER, advanced: BR_BEGINNER },
-  AU: { beginner: AU_BEGINNER, intermediate: AU_BEGINNER, advanced: AU_BEGINNER },
-  CA: { beginner: CA_BEGINNER, intermediate: CA_BEGINNER, advanced: CA_BEGINNER },
+  IN: { beginner: IN_BEGINNER, intermediate: IN_BEGINNER, advanced: IN_BEGINNER.slice(0, 3) },
+  US: { beginner: US_BEGINNER, intermediate: US_BEGINNER, advanced: US_BEGINNER.slice(0, 3) },
+  GB: { beginner: GB_BEGINNER, intermediate: GB_BEGINNER, advanced: GB_BEGINNER.slice(0, 3) },
+  SA: { beginner: SA_BEGINNER, intermediate: SA_BEGINNER, advanced: SA_BEGINNER.slice(0, 3) },
+  FR: { beginner: FR_BEGINNER, intermediate: FR_BEGINNER, advanced: FR_BEGINNER.slice(0, 3) },
+  DE: { beginner: DE_BEGINNER, intermediate: DE_BEGINNER, advanced: DE_BEGINNER.slice(0, 3) },
+  BR: { beginner: BR_BEGINNER, intermediate: BR_BEGINNER, advanced: BR_BEGINNER.slice(0, 3) },
+  AU: { beginner: AU_BEGINNER, intermediate: AU_BEGINNER, advanced: AU_BEGINNER.slice(0, 3) },
+  CA: { beginner: CA_BEGINNER, intermediate: CA_BEGINNER, advanced: CA_BEGINNER.slice(0, 3) },
 };
 
 /**
@@ -401,7 +430,6 @@ export function getFallbackGuide(
     const steps = countryGuides[knowledgeLevel];
     if (steps) return [...steps];
   }
-
-  // Final fallback (UK version as high-quality default)
-  return FALLBACK_GUIDES.GB[knowledgeLevel];
+  
+  return null;
 }

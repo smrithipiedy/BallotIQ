@@ -23,7 +23,7 @@ export async function withTrace<T>(
 
   if (!fn) {
     console.error(`[withTrace] No function provided for trace: ${traceName}`);
-    return Promise.resolve() as any;
+    return Promise.resolve() as unknown as T;
   }
 
   // If performance monitoring is unavailable or we're on SSR, just run the function

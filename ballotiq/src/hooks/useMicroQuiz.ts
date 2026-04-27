@@ -47,7 +47,7 @@ export function useMicroQuiz(
     }
 
     if (step.microQuizQuestion) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setQuestion(step.microQuizQuestion);
       return;
     }

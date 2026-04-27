@@ -12,7 +12,7 @@ import type { RateLimitState } from '@/types';
 
 /** Daily API call limits per service */
 const DAILY_LIMITS = {
-  gemini: 100,
+  gemini: 40,
   translate: 100,
   tts: 50,
 } as const;
@@ -124,7 +124,7 @@ export async function incrementUsage(
 export function getRateLimitMessage(service: APIService): string {
   const messages: Record<APIService, string> = {
     gemini:
-      'AI requests limit reached for today. Content will load from our offline library. Resets at midnight.',
+      'AI requests limit reached for today. Content will load from our verified cache. Resets at midnight.',
     translate:
       'Translation limit reached for today. Resets at midnight.',
     tts: 'Text-to-speech limit reached for today. Resets at midnight.',
