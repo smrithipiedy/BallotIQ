@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { COUNTRIES } from '@/lib/constants/countries';
 import type { Country } from '@/types';
-import Image from 'next/image';
 
 interface CountrySelectorProps {
   onSelect: (country: Country) => void;
@@ -41,20 +40,17 @@ export default function CountrySelector({ onSelect, className = '' }: CountrySel
           id="country-search"
         />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {filtered.map((country) => (
           <button
             key={country.code}
             onClick={() => onSelect(country)}
-            className="flex flex-col sm:flex-row items-center gap-2 px-3 md:px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 text-left"
+            className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 text-left"
             aria-label={`Select ${country.name}`}
           >
-            <Image
-              src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`}
-              alt={`Flag of ${country.name}`}
-              width={80}
-              height={60}
-              unoptimized
+            <img 
+              src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`} 
+              alt="" 
               className="w-8 h-6 object-cover rounded-sm shadow-sm"
             />
             <div>

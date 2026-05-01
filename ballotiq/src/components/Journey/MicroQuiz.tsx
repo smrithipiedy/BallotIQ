@@ -167,17 +167,9 @@ export default function MicroQuiz({
 
             {!isCorrect && (
               <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
-                    <Brain className="w-3 h-3" />
-                    <TranslatedText text="Adaptive Reinforcement" />
-                  </div>
-                  {selectedAnswer !== null && question.options[selectedAnswer] && (
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400">
-                      <span className="opacity-60 uppercase tracking-tighter"><TranslatedText text="Your answer" />:</span>
-                      <TranslatedText text={question.options[selectedAnswer]} />
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                  <Brain className="w-3 h-3" />
+                  <TranslatedText text="Adaptive Reinforcement" />
                 </div>
                 {isReExplaining ? (
                   <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
@@ -185,7 +177,7 @@ export default function MicroQuiz({
                     <TranslatedText text="AI is preparing a simpler explanation..." />
                   </div>
                 ) : reExplanation ? (
-                  <div className="text-sm text-gray-300 leading-relaxed italic border-l-2 border-blue-500/30 pl-4 py-1">
+                  <div className="text-sm text-gray-300 leading-relaxed prose prose-invert max-w-none">
                     <SafeHTML html={reExplanation} />
                   </div>
                 ) : null}

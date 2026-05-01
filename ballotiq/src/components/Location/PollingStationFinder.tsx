@@ -178,7 +178,7 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
 
   return (
     <ErrorBoundary componentName="PollingStationFinder">
-      <div className="relative w-full h-[50vh] min-h-[320px] sm:h-[550px] lg:h-[600px] rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl group">
+      <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[600px] rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl group">
         {/* Map instance */}
         <div
           ref={mapRef}

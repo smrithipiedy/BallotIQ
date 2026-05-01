@@ -20,7 +20,6 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import LanguageSelector from '@/components/ui/LanguageSelector';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import TranslatedText from '@/components/ui/TranslatedText';
-import Image from 'next/image';
 
 /** Personalized certification quiz page */
 export default function QuizPage() {
@@ -87,12 +86,9 @@ export default function QuizPage() {
 
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                <Image
+                <img 
                   src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
-                  alt={`Flag of ${userContext.countryName}`}
-                  width={80}
-                  height={50}
-                  unoptimized
+                  alt="" 
                   className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
                 />
                 <span className="text-sm font-bold text-white tracking-tight leading-none whitespace-nowrap">

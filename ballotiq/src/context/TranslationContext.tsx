@@ -15,15 +15,16 @@ interface TranslationContextType {
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [language, setLang] = useState<SupportedLanguage>(() => {
-    if (typeof window === 'undefined') return 'en';
-
-    const saved = localStorage.getItem('ballotiq_lang') as SupportedLanguage | null;
-    if (saved && ['en', 'hi', 'te', 'ta', 'fr', 'es', 'de', 'pt'].includes(saved)) return saved;
-
-    return 'en';
-  });
+  const [language, setLang] = useState<SupportedLanguage>('en');
   const [isTranslating, setIsTranslating] = useState(false);
+
+  // Initialize from storage on mount
+  React.useEffect(() => {
+    const saved = localStorage.getItem('ballotiq_lang') as SupportedLanguage;
+    if (saved && ['en', 'hi', 'te', 'ta', 'fr', 'es', 'de', 'pt'].includes(saved)) {
+      setLang(saved);
+    }
+  }, []);
 
   const setLanguage = useCallback((lang: SupportedLanguage) => {
     localStorage.setItem('ballotiq_lang', lang);

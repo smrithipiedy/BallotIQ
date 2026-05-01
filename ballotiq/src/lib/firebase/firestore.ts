@@ -13,7 +13,6 @@ import {
   orderBy,
   limit,
   getDocs,
-  addDoc,
 } from 'firebase/firestore';
 import { getFirestoreDB, authReady } from './client';
 import { withTrace } from './performance';
@@ -167,19 +166,21 @@ export async function getProgress(sessionId: string): Promise<UserProgress | nul
 }
 
 /**
- * Appends a chat message to the session's message history.
- * 
- * @param sessionId - The unique identifier for the user session
- * @param message - The chat message object to save
+ * Saves a chat message to the session's message collection.
+ * @param sessionId - Session identifier
+ * @param message - ChatMessage to save
  */
-export async function saveChatMessage(sessionId: string, message: ChatMessage): Promise<void> {
+export async function saveChatMessage(
+  sessionId: string,
+  message: ChatMessage
+): Promise<void> {
   try {
     await authReady;
     const db = getFirestoreDB();
-    const ref = collection(db, 'sessions', sessionId, 'messages');
-    await addDoc(ref, message);
+    const ref = doc(db, 'sessions', sessionId, 'messages', message.id);
+    await setDoc(ref, message);
   } catch (error) {
-    console.warn('[Firestore] Failed to save chat message:', error);
+    console.error('[Firestore] Failed to save chat message:', error);
   }
 }
 
@@ -277,8 +278,7 @@ export async function getCachedQuiz(
     const entry = snap.data() as CacheEntry<QuizQuestion[]>;
     if (new Date() > new Date(entry.expiresAt)) return null;
     return entry.data;
-  } catch (error) {
-    console.error('[Firestore] Failed to get cached quiz:', error);
+  } catch {
     return null;
   }
 }

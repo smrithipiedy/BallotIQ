@@ -25,7 +25,7 @@ export type AssessmentPhase = 'intro' | 'questions' | 'analyzing' | 'complete';
 export type QuizPhase = 'loading' | 'active' | 'reviewing' | 'complete';
 
 /** Reason the adaptive system triggered simplified mode */
-export type AdaptationReason = 'consecutive_errors' | 'low_score' | 'user_request' | 'user_consent';
+export type AdaptationReason = 'consecutive_errors' | 'low_score' | 'user_request';
 
 /** Country metadata for election education */
 export interface Country {

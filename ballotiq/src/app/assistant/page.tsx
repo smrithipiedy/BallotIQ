@@ -7,9 +7,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Zap } from 'lucide-react';
 import type { UserContext } from '@/types';
 import { useTTS } from '@/hooks/useTTS';
+import { useTranslation } from '@/hooks/useTranslation';
 import { getFallbackGuide } from '@/lib/gemini/fallback';
 import ChatWindow from '@/components/Assistant/ChatWindow';
 import KnowledgeMeter from '@/components/Assessment/KnowledgeMeter';
@@ -18,41 +19,39 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import TranslatedText from '@/components/ui/TranslatedText';
 import { getCountryByCode } from '@/lib/constants/countries';
 import type { ElectionStep } from '@/types';
-import Image from 'next/image';
-import { useMemo } from 'react';
 
 /** Full-page AI assistant with context-aware responses */
 export default function AssistantPage() {
   const router = useRouter();
-  const [userContext] = useState<UserContext | null>(() => {
-    if (typeof window === 'undefined') return null;
-
-    const stored = sessionStorage.getItem('ballotiq_context');
-    if (!stored) return null;
-
-    const ctx = JSON.parse(stored) as UserContext;
-
-    // Hydrate missing metadata for legacy sessions
-    if (!ctx.electionBody || !ctx.electionBodyUrl) {
-      const countryData = getCountryByCode(ctx.countryCode);
-      if (countryData) {
-        ctx.electionBody = countryData.electionBody;
-        ctx.electionBodyUrl = countryData.electionBodyUrl;
-        sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
-      }
-    }
-
-    return ctx;
-  });
-
-  const completedSteps = useMemo<ElectionStep[]>(() => {
-    if (!userContext) return [];
-    return getFallbackGuide(userContext.countryCode, userContext.knowledgeLevel) ?? [];
-  }, [userContext]);
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<ElectionStep[]>([]);
+  const [aiActive, setAiActive] = useState(true);
+  const { language } = useTranslation();
 
   useEffect(() => {
-    if (!userContext) router.push('/');
-  }, [router, userContext]);
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('ballotiq_context');
+      if (stored) {
+        const ctx = JSON.parse(stored) as UserContext;
+        
+        // Hydrate missing metadata for legacy sessions
+        if (!ctx.electionBody || !ctx.electionBodyUrl) {
+          const countryData = getCountryByCode(ctx.countryCode);
+          if (countryData) {
+            ctx.electionBody = countryData.electionBody;
+            ctx.electionBodyUrl = countryData.electionBodyUrl;
+            sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
+          }
+        }
+
+        setUserContext(ctx);
+        const fallback = getFallbackGuide(ctx.countryCode, ctx.knowledgeLevel);
+        setCompletedSteps(fallback ?? []);
+      } else {
+        router.push('/');
+      }
+    }
+  }, [router]);
 
   const { isSpeaking, currentText, toggle: toggleTTS } = useTTS(
     userContext?.sessionId ?? ''
@@ -63,7 +62,7 @@ export default function AssistantPage() {
   const countryInfo = getCountryByCode(userContext.countryCode);
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
+    <div className="h-[100dvh] flex flex-col bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-hidden">
       {/* Header — matches learn page style */}
       <header className="sticky top-0 z-50 flex-shrink-0 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-4">
@@ -79,17 +78,14 @@ export default function AssistantPage() {
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               {userContext.mainConfusion === 'Direct query' ? (
                 <button 
-                  onClick={() => router.push('/#countries')}
+                  onClick={() => router.push('/#country-selection')}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group"
                   aria-label="Change Country"
                   title="Change Country"
                 >
-                  <Image
-                    src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
-                    alt={`Flag of ${userContext.countryName}`}
-                    width={80}
-                    height={50}
-                    unoptimized
+                  <img 
+                    src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`} 
+                    alt="" 
                     className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
                   />
                   <span className="text-sm font-bold text-white tracking-tight leading-none whitespace-nowrap group-hover:text-blue-300 transition-colors">
@@ -98,12 +94,9 @@ export default function AssistantPage() {
                 </button>
               ) : (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                  <Image
-                    src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
-                    alt={`Flag of ${userContext.countryName}`}
-                    width={80}
-                    height={50}
-                    unoptimized
+                  <img 
+                    src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`} 
+                    alt="" 
                     className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
                   />
                   <span className="text-sm font-bold text-white tracking-tight leading-none whitespace-nowrap">
@@ -140,7 +133,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 min-h-0 overflow-hidden max-w-4xl w-full mx-auto px-4 sm:px-6">
+      <div className="flex-1 overflow-hidden max-w-4xl w-full mx-auto px-4 sm:px-6">
         <ErrorBoundary componentName="AssistantPage">
           <ChatWindow
             userContext={userContext}
@@ -148,6 +141,7 @@ export default function AssistantPage() {
             isSpeaking={isSpeaking}
             currentSpokenText={currentText}
             onSpeak={toggleTTS}
+            onAiStatusChange={setAiActive}
           />
         </ErrorBoundary>
       </div>

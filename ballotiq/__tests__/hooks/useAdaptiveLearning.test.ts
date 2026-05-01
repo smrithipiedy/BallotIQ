@@ -77,29 +77,21 @@ describe('useAdaptiveLearning', () => {
     expect(result.current.consecutiveErrors).toBe(0);
   });
 
-  it('shows adaptation prompt after 2 consecutive errors', async () => {
+  it('triggers adaptation after 2 consecutive errors', async () => {
     const { result } = renderHook(() => useAdaptiveLearning(mockContext, mockSteps));
     
     // Fail 1
     await act(async () => {
       await result.current.handleMicroQuizResult(false, mockSteps[0], 'W1', 'C');
     });
-    expect(result.current.showAdaptationPrompt).toBe(false);
     expect(result.current.adaptationActive).toBe(false);
 
     // Fail 2
     await act(async () => {
       await result.current.handleMicroQuizResult(false, mockSteps[0], 'W2', 'C');
     });
-    expect(result.current.showAdaptationPrompt).toBe(true);
-    expect(result.current.adaptationActive).toBe(false);
-
-    // Confirm
-    act(() => {
-      result.current.confirmAdaptation();
-    });
     expect(result.current.adaptationActive).toBe(true);
-    expect(result.current.showAdaptationPrompt).toBe(false);
+    expect(result.current.consecutiveErrors).toBe(2);
   });
 
   it('calls reExplainConcept on failure', async () => {
@@ -130,9 +122,6 @@ describe('useAdaptiveLearning', () => {
     await act(async () => {
       await result.current.handleMicroQuizResult(false, mockSteps[0], 'W1', 'C');
       await result.current.handleMicroQuizResult(false, mockSteps[0], 'W2', 'C');
-    });
-    act(() => {
-      result.current.confirmAdaptation();
     });
     expect(result.current.adaptationActive).toBe(true);
 

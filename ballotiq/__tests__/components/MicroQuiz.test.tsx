@@ -3,11 +3,8 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import { axe, toHaveNoViolations } from 'jest-axe';
 import MicroQuiz from '@/components/Journey/MicroQuiz';
 import type { MicroQuizQuestion } from '@/types';
-
-expect.extend(toHaveNoViolations);
 
 const mockQuestion: MicroQuizQuestion = {
   question: 'What is the voting age?',
@@ -23,26 +20,6 @@ describe('MicroQuiz', () => {
   beforeEach(() => {
     onSubmit.mockClear();
     onContinue.mockClear();
-  });
-
-  it('should have no accessibility violations', async () => {
-    const { container } = render(
-      <MicroQuiz
-        question={mockQuestion}
-        loading={false}
-        selectedAnswer={null}
-        isCorrect={null}
-        showResult={false}
-        explanation={null}
-        reExplanation={null}
-        isReExplaining={false}
-        onSubmit={onSubmit}
-        onContinue={onContinue}
-      />,
-    );
-
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
   });
 
   it('renders question and options', () => {

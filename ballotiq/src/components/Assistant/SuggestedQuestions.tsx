@@ -22,28 +22,22 @@ export default function SuggestedQuestions({ countryName, onSelect }: SuggestedQ
   ];
 
   return (
-    <nav className="space-y-3" aria-label="Suggested questions">
+    <div className="space-y-3" role="region" aria-label="Suggested questions">
       <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
         <TranslatedText text="Try asking:" />
       </p>
-      <div className="flex flex-wrap gap-2" role="list">
+      <div className="flex flex-wrap gap-2">
         {suggestions.map((q) => (
           <button
             key={q}
-            role="listitem"
             onClick={() => onSelect(q)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                onSelect(q);
-              }
-            }}
-            className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-gray-300 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-gray-300 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200"
             aria-label={q}
           >
             <TranslatedText text={q} />
           </button>
         ))}
       </div>
-    </nav>
+    </div>
   );
 }

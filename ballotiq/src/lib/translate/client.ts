@@ -7,7 +7,6 @@
 import type { SupportedLanguage } from '@/types';
 import { logger } from '@/lib/logger';
 import { withTrace } from '@/lib/firebase/performance';
-import { checkRateLimit, incrementUsage } from '@/lib/security/rateLimit';
 
 /** In-memory translation cache: key = `${text}:${lang}` */
 const translationCache = new Map<string, string>();
@@ -41,9 +40,6 @@ export async function translateText(
     const cached = translationCache.get(cacheKey);
     if (cached) return cached;
 
-    const limit = await checkRateLimit('translate', 'translate');
-    if (!limit.allowed) return text;
-
     if (!API_KEY) {
       logger.error('API Key is missing. Set NEXT_PUBLIC_TRANSLATE_API_KEY.', null, { component: 'TranslateClient' });
       return text;
@@ -70,7 +66,6 @@ export async function translateText(
 
       const translated = data.data.translations[0].translatedText;
       translationCache.set(cacheKey, translated);
-      await incrementUsage('translate', 'translate');
       return translated;
     } catch (error) {
       logger.error('Translation failed', error, { component: 'TranslateClient' });
@@ -106,9 +101,6 @@ export async function translateBatch(
 
     if (!API_KEY) return results;
 
-    const limit = await checkRateLimit('translate', 'translate');
-    if (!limit.allowed) return results;
-
     try {
       const response = await fetch(`${BASE_URL}?key=${API_KEY}`, {
         method: 'POST',
@@ -138,7 +130,6 @@ export async function translateBatch(
       logger.error('Batch translation failed', error, { component: 'TranslateClient' });
     }
 
-    await incrementUsage('translate', 'translate');
     return results;
   });
 }

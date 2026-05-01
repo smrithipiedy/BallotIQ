@@ -134,9 +134,3 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
-@media (max-width: 768px) {
-  h1 { font-size: clamp(1.75rem, 7vw, 2.5rem); }
-  h2 { font-size: clamp(1.25rem, 5vw, 1.75rem); }
-  h3 { font-size: clamp(1rem, 4vw, 1.25rem); }
-}

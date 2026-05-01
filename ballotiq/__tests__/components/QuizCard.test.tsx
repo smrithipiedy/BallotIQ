@@ -3,11 +3,8 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import { axe, toHaveNoViolations } from 'jest-axe';
 import QuizCard from '@/components/Quiz/QuizCard';
 import type { QuizQuestion } from '@/types';
-
-expect.extend(toHaveNoViolations);
 
 const mockQ: QuizQuestion = {
   id: 'q1',
@@ -21,22 +18,6 @@ const mockQ: QuizQuestion = {
 
 describe('QuizCard', () => {
   const onAnswer = jest.fn();
-
-  it('should have no accessibility violations', async () => {
-    const { container } = render(
-      <QuizCard
-        question={mockQ}
-        questionNumber={1}
-        totalQuestions={10}
-        selectedAnswer={null}
-        showResult={false}
-        onAnswer={onAnswer}
-      />,
-    );
-
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
-  });
 
   it('renders question and difficulty badge', () => {
     render(

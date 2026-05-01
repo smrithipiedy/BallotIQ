@@ -1,7 +1,7 @@
 /**
  * Validates and safely parses all Gemini JSON responses.
  * Never lets malformed AI output crash the application.
- * Each validator is a type guard that checks fields individually.
+ * Each validator is a type guard that ensures structural correctness.
  */
 
 import type {
@@ -10,47 +10,7 @@ import type {
   MicroQuizQuestion,
   QuizQuestion,
 } from '@/types';
-import { QUIZ_OPTIONS_COUNT } from '@/lib/constants/ai';
 import { sanitizeJSONResponse } from '@/lib/security/sanitize';
-
-/**
- * Checks whether an unknown value is a non-null object.
- * @param value - The value to check
- * @returns True if value is a plain object
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Safely reads a string field from an unknown object.
- * @param obj - The unknown object
- * @param key - The field name
- * @returns True if obj[key] is a string
- */
-function hasString(obj: Record<string, unknown>, key: string): boolean {
-  return typeof obj[key] === 'string';
-}
-
-/**
- * Safely reads a number field from an unknown object.
- * @param obj - The unknown object
- * @param key - The field name
- * @returns True if obj[key] is a number
- */
-function hasNumber(obj: Record<string, unknown>, key: string): boolean {
-  return typeof obj[key] === 'number';
-}
-
-/**
- * Safely checks if a field is an array.
- * @param obj - The unknown object
- * @param key - The field name
- * @returns True if obj[key] is an array
- */
-function hasArray(obj: Record<string, unknown>, key: string): boolean {
-  return Array.isArray(obj[key]);
-}
 
 /**
  * Safely parses a Gemini JSON response with validation.
@@ -81,8 +41,10 @@ export function parseGeminiJSON<T>(
     // Attempt basic repair for truncated JSON responses
     try {
       if (cleaned.startsWith('[')) {
+        // Remove trailing partial items and close array
         cleaned = cleaned.replace(/,?[^,}]+$/, '') + ']';
       } else if (cleaned.startsWith('{')) {
+        // Remove trailing partial items and close object
         cleaned = cleaned.replace(/,?[^,}]+$/, '') + '}';
       }
       parsed = JSON.parse(cleaned);
@@ -101,63 +63,58 @@ export function parseGeminiJSON<T>(
 }
 
 /**
- * Type guard: validates a single ElectionStep object.
- * Checks each required field individually without type casts.
- * @param item - Unknown data to validate
- * @returns True if item is a valid ElectionStep
- */
-function isElectionStep(item: unknown): item is ElectionStep {
-  if (!isRecord(item)) return false;
-  return (
-    hasString(item, 'id') &&
-    hasNumber(item, 'order') &&
-    hasString(item, 'title') &&
-    hasString(item, 'description') &&
-    hasString(item, 'detailedExplanation') &&
-    hasString(item, 'simpleExplanation') &&
-    hasString(item, 'timeline') &&
-    hasArray(item, 'requirements') &&
-    hasArray(item, 'tips')
-  );
-}
-
-/**
  * Type guard: validates an array of ElectionStep objects.
+ * Checks that each element has all required fields with correct types.
  * @param data - Unknown data to validate
  * @returns True if data is a valid ElectionStep array
  */
 export function isElectionStepsArray(data: unknown): data is ElectionStep[] {
-  if (!Array.isArray(data) || data.length === 0) return false;
-  return data.every(isElectionStep);
-}
+  if (!Array.isArray(data) || data.length === 0) {
+    return false;
+  }
 
-/**
- * Type guard: validates a single QuizQuestion object.
- * @param item - Unknown data to validate
- * @returns True if item is a valid QuizQuestion
- */
-function isQuizQuestion(item: unknown): item is QuizQuestion {
-  if (!isRecord(item)) return false;
-  return (
-    hasString(item, 'id') &&
-    hasString(item, 'question') &&
-    Array.isArray(item['options']) &&
-    (item['options'] as unknown[]).length === QUIZ_OPTIONS_COUNT &&
-    hasNumber(item, 'correctIndex') &&
-    (item['correctIndex'] as number) >= 0 &&
-    (item['correctIndex'] as number) <= 3 &&
-    hasString(item, 'explanation')
-  );
+  return data.every((item: unknown) => {
+    if (typeof item !== 'object' || item === null) return false;
+    const step = item as Record<string, unknown>;
+    return (
+      typeof step['id'] === 'string' &&
+      typeof step['order'] === 'number' &&
+      typeof step['title'] === 'string' &&
+      typeof step['description'] === 'string' &&
+      typeof step['detailedExplanation'] === 'string' &&
+      typeof step['simpleExplanation'] === 'string' &&
+      typeof step['timeline'] === 'string' &&
+      Array.isArray(step['requirements']) &&
+      Array.isArray(step['tips'])
+    );
+  });
 }
 
 /**
  * Type guard: validates an array of QuizQuestion objects.
+ * Ensures each question has options, correct index, and explanation.
  * @param data - Unknown data to validate
  * @returns True if data is a valid QuizQuestion array
  */
 export function isQuizQuestionsArray(data: unknown): data is QuizQuestion[] {
-  if (!Array.isArray(data) || data.length === 0) return false;
-  return data.every(isQuizQuestion);
+  if (!Array.isArray(data) || data.length === 0) {
+    return false;
+  }
+
+  return data.every((item: unknown) => {
+    if (typeof item !== 'object' || item === null) return false;
+    const q = item as Record<string, unknown>;
+    return (
+      typeof q['id'] === 'string' &&
+      typeof q['question'] === 'string' &&
+      Array.isArray(q['options']) &&
+      q['options'].length === 4 &&
+      typeof q['correctIndex'] === 'number' &&
+      q['correctIndex'] >= 0 &&
+      q['correctIndex'] <= 3 &&
+      typeof q['explanation'] === 'string'
+    );
+  });
 }
 
 /**
@@ -167,20 +124,18 @@ export function isQuizQuestionsArray(data: unknown): data is QuizQuestion[] {
  * @returns True if data is a valid MicroQuizQuestion
  */
 export function isMicroQuizQuestion(data: unknown): data is MicroQuizQuestion {
-  if (!isRecord(data)) return false;
+  if (typeof data !== 'object' || data === null) return false;
+  const q = data as Record<string, unknown>;
   return (
-    hasString(data, 'question') &&
-    Array.isArray(data['options']) &&
-    (data['options'] as unknown[]).length === QUIZ_OPTIONS_COUNT &&
-    hasNumber(data, 'correctIndex') &&
-    (data['correctIndex'] as number) >= 0 &&
-    (data['correctIndex'] as number) <= 3 &&
-    hasString(data, 'hint')
+    typeof q['question'] === 'string' &&
+    Array.isArray(q['options']) &&
+    q['options'].length === 4 &&
+    typeof q['correctIndex'] === 'number' &&
+    q['correctIndex'] >= 0 &&
+    q['correctIndex'] <= 3 &&
+    typeof q['hint'] === 'string'
   );
 }
-
-/** Valid knowledge levels for assessment validation */
-const VALID_LEVELS: readonly string[] = ['beginner', 'intermediate', 'advanced'];
 
 /** Shape of the assessment analysis result from Gemini */
 interface AssessmentResultShape {
@@ -198,12 +153,14 @@ interface AssessmentResultShape {
 export function isAssessmentResult(
   data: unknown
 ): data is AssessmentResultShape {
-  if (!isRecord(data)) return false;
+  if (typeof data !== 'object' || data === null) return false;
+  const r = data as Record<string, unknown>;
+  const validLevels: KnowledgeLevel[] = ['beginner', 'intermediate', 'advanced'];
   return (
-    hasString(data, 'knowledgeLevel') &&
-    VALID_LEVELS.includes(data['knowledgeLevel'] as string) &&
-    hasNumber(data, 'recommendedStepCount') &&
-    (data['recommendedStepCount'] as number) > 0 &&
-    hasArray(data, 'focusAreas')
+    typeof r['knowledgeLevel'] === 'string' &&
+    validLevels.includes(r['knowledgeLevel'] as KnowledgeLevel) &&
+    typeof r['recommendedStepCount'] === 'number' &&
+    r['recommendedStepCount'] > 0 &&
+    Array.isArray(r['focusAreas'])
   );
 }

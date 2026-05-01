@@ -3,7 +3,8 @@
  * Shows users whether they are getting Live AI, Cached, or Offline responses.
  */
 
-import { Bot, Zap, Database } from 'lucide-react';
+import React from 'react';
+import { Bot, Zap, CloudOff, Database } from 'lucide-react';
 import TranslatedText from './TranslatedText';
 
 export type AIStatusMode = 'live' | 'cached' | 'error';
@@ -13,14 +14,6 @@ interface AIStatusBadgeProps {
   className?: string;
 }
 
-/**
- * Component that displays the current operational state of the AI assistant.
- * Informs the user whether the response is fresh from the model or from a verified cache.
- * 
- * @param props - Component properties
- * @param props.mode - The status mode: 'live', 'cached', or 'error'
- * @param props.className - Optional CSS class overrides
- */
 export default function AIStatusBadge({ mode, className = '' }: AIStatusBadgeProps) {
   const configs = {
     live: {
@@ -38,7 +31,7 @@ export default function AIStatusBadge({ mode, className = '' }: AIStatusBadgePro
     error: {
       label: 'AI Inactive',
       icon: Bot,
-      color: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
+      color: 'text-gray-500 bg-gray-500/10 border-gray-500/20',
       pulse: false
     }
   };
@@ -47,19 +40,15 @@ export default function AIStatusBadge({ mode, className = '' }: AIStatusBadgePro
   const Icon = config.icon;
 
   return (
-    <div 
-      className={`inline-flex items-center gap-2 px-2 md:px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest ${config.color} ${className}`}
-      aria-live="polite"
-      role="status"
-    >
+    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest ${config.color} ${className}`}>
       {config.pulse && (
-        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+        <span className="relative flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
         </span>
       )}
-      <Icon className="w-3 h-3" aria-hidden="true" />
-      <span className="hidden md:inline"><TranslatedText text={config.label} /></span>
+      <Icon className="w-3 h-3" />
+      <span><TranslatedText text={config.label} /></span>
     </div>
   );
 }
