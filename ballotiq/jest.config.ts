@@ -4,6 +4,7 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  modulePathIgnorePatterns: ['<rootDir>/.next/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
@@ -12,7 +13,15 @@ const config: Config = {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.json'
     }]
-  }
+  },
+  coverageThreshold: {
+    global: {
+      lines: 70,
+      functions: 70,
+      branches: 70,
+      statements: 70,
+    },
+  },
 };
 
 export default config;

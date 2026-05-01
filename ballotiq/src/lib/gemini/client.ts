@@ -51,11 +51,10 @@ const isGeminiEnabled =
  * gemini-1.5-flash: Most stable fallback.
  */
 const MODELS_TO_TRY = [
-  'models/gemini-2.5-flash',
   'models/gemini-2.5-flash-lite',
+  'models/gemini-3.1-flash-lite',
   'models/gemini-3.1-flash',
-  'models/Gemma-4-31B',
-  'models/Gemma-4-26B'
+  'models/gemini-2.5-flash'
 ] as const;
 
 // Initialize genAI once
@@ -399,8 +398,8 @@ export async function askAssistant(
       const userMessage = buildAssistantUserMessage(question, chatHistory);
 
       try {
-        // 800 tokens ensures complete, unabridged replies
-        const raw = await callGemini(userMessage, userContext.sessionId, false, systemPrompt, 800);
+        // Keep replies fast and focused for chat UX.
+        const raw = await callGemini(userMessage, userContext.sessionId, true, systemPrompt, 420);
         if (raw) return sanitizeAIResponse(raw);
         return 'The AI assistant is temporarily unavailable. Please try your question again in a moment or check your connection.';
       } catch (err: unknown) {

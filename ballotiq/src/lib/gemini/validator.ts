@@ -10,6 +10,7 @@ import type {
   MicroQuizQuestion,
   QuizQuestion,
 } from '@/types';
+import { QUIZ_OPTIONS_COUNT } from '@/lib/constants';
 import { sanitizeJSONResponse } from '@/lib/security/sanitize';
 
 /**
@@ -108,10 +109,10 @@ export function isQuizQuestionsArray(data: unknown): data is QuizQuestion[] {
       typeof q['id'] === 'string' &&
       typeof q['question'] === 'string' &&
       Array.isArray(q['options']) &&
-      q['options'].length === 4 &&
+      q['options'].length === QUIZ_OPTIONS_COUNT &&
       typeof q['correctIndex'] === 'number' &&
       q['correctIndex'] >= 0 &&
-      q['correctIndex'] <= 3 &&
+      q['correctIndex'] <= QUIZ_OPTIONS_COUNT - 1 &&
       typeof q['explanation'] === 'string'
     );
   });
@@ -129,10 +130,10 @@ export function isMicroQuizQuestion(data: unknown): data is MicroQuizQuestion {
   return (
     typeof q['question'] === 'string' &&
     Array.isArray(q['options']) &&
-    q['options'].length === 4 &&
+    q['options'].length === QUIZ_OPTIONS_COUNT &&
     typeof q['correctIndex'] === 'number' &&
     q['correctIndex'] >= 0 &&
-    q['correctIndex'] <= 3 &&
+    q['correctIndex'] <= QUIZ_OPTIONS_COUNT - 1 &&
     typeof q['hint'] === 'string'
   );
 }

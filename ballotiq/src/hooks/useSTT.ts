@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * Hook for Speech-to-Text using Web Speech API.
  * Handles microphone input and converts it to text.
  */
-export function useSTT(language: string = 'en-US') {
+export function useSTT(language: string = 'en-US', onResult?: (text: string) => void) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +35,9 @@ export function useSTT(language: string = 'en-US') {
       const current = event.resultIndex;
       const resultTranscript = event.results[current][0].transcript;
       setTranscript(resultTranscript);
+      if (event.results[current].isFinal) {
+        onResult?.(resultTranscript);
+      }
     };
 
     recognition.onerror = (event: any) => {
@@ -47,8 +50,12 @@ export function useSTT(language: string = 'en-US') {
     };
 
     recognitionRef.current = recognition;
-  }, [language]);
+  }, [language, onResult]);
 
+  /**
+   * Starts the Web Speech API recognition process.
+   * Clears existing transcript and resets state.
+   */
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
       setTranscript('');
@@ -60,11 +67,19 @@ export function useSTT(language: string = 'en-US') {
     }
   }, [isListening]);
 
+  /**
+   * Stops the Web Speech API recognition process.
+   */
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Ignore stop race conditions from browser API
+      }
+      setIsListening(false);
     }
-  }, [isListening]);
+  }, []);
 
   useEffect(() => {
     if (recognitionRef.current) {

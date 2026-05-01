@@ -5,10 +5,14 @@
  * Renders different UI for each of the 3 question types.
  */
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { Mic, MicOff } from 'lucide-react';
 import { sanitizeUserInput } from '@/lib/security/sanitize';
 import TranslatedText from '@/components/ui/TranslatedText';
 import TTSButton from '@/components/ui/TTSButton';
+import { useSTT } from '@/hooks/useSTT';
+import { useTranslation } from '@/hooks/useTranslation';
+import { getLanguageInfo } from '@/lib/constants/languages';
 
 interface DiagnosticQuestionProps {
   questionNumber: 1 | 2 | 3;
@@ -115,6 +119,20 @@ export default function DiagnosticQuestion({
   // Question 3
   const charCount = textInput.length;
   const maxChars = 200;
+  const { language } = useTranslation();
+  const sttLanguage = useMemo(
+    () => getLanguageInfo(language)?.googleTTSCode ?? 'en-US',
+    [language]
+  );
+  const appendTranscript = useCallback((spokenText: string) => {
+    const cleanSpoken = spokenText.trim();
+    if (!cleanSpoken) return;
+    setTextInput((prev) => {
+      const prefix = prev.trim().length > 0 ? `${prev.trim()} ` : '';
+      return `${prefix}${cleanSpoken}`.slice(0, maxChars);
+    });
+  }, []);
+  const { isListening, error, startListening, stopListening } = useSTT(sttLanguage, appendTranscript);
 
   return (
     <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
@@ -131,17 +149,43 @@ export default function DiagnosticQuestion({
       )}
       <p className="text-sm sm:text-base text-gray-400"><TranslatedText text="Tell us what you would like to understand better." /></p>
       <div className="space-y-4">
-        <div className="p-0.5 rounded-2xl sm:rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent">
+        <div className="relative p-0.5 rounded-2xl sm:rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent">
           <textarea
             value={textInput}
             onChange={(e) => setTextInput(e.target.value.slice(0, maxChars))}
             placeholder="e.g. How does vote counting work? What is a constituency?"
-            className="w-full h-32 sm:h-40 px-4 sm:px-6 py-4 sm:py-6 bg-[#080815] rounded-[1.4rem] sm:rounded-[1.9rem] text-white placeholder-gray-600 resize-none focus:outline-none transition-all text-base sm:text-lg leading-relaxed"
+            className="w-full h-32 sm:h-40 px-4 sm:px-6 py-4 sm:py-6 pr-14 sm:pr-16 bg-[#080815] rounded-[1.4rem] sm:rounded-[1.9rem] text-white placeholder-gray-600 resize-none focus:outline-none transition-all text-base sm:text-lg leading-relaxed"
             aria-labelledby="q3-heading"
             aria-describedby="char-counter"
             maxLength={maxChars}
             disabled={isLoading}
           />
+          <button
+            type="button"
+            onClick={isListening ? stopListening : startListening}
+            disabled={isLoading}
+            className={`absolute right-3 sm:right-4 bottom-3 sm:bottom-4 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all ${
+              isListening
+                ? 'bg-red-500/20 border-red-400/60 text-red-300'
+                : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+            aria-pressed={isListening}
+          >
+            {isListening ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
+        </div>
+        <div className="px-2 min-h-5">
+          {error && (
+            <p className="text-[10px] sm:text-xs text-amber-400">
+              <TranslatedText text="Voice input is unavailable on this browser. You can continue typing." />
+            </p>
+          )}
+          {isListening && !error && (
+            <p className="text-[10px] sm:text-xs text-blue-300 animate-pulse">
+              <TranslatedText text="Listening... speak now." />
+            </p>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
           <span id="char-counter" className={`text-[10px] sm:text-xs font-medium tracking-widest uppercase ${charCount > 180 ? 'text-amber-400' : 'text-gray-600'}`}>

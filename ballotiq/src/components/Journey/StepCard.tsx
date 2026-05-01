@@ -4,14 +4,14 @@
  * Election step card with depth-appropriate content display.
  * - Beginner: detailedExplanation (plain language)
  * - Intermediate/Advanced: detailedExplanation (full depth)
- * - Adaptation mode: simpleExplanation
+ * - Adaptation mode: expanded simplified explanation
  * - Shows userConfusion callout if fallback content is in use
  */
 
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, CheckCircle2, Clock,
-  FileText, Lightbulb, AlertCircle, ExternalLink,
+  FileText, Lightbulb, ExternalLink,
 } from 'lucide-react';
 import type { ElectionStep, KnowledgeLevel } from '@/types';
 import TTSButton from '@/components/ui/TTSButton';
@@ -36,17 +36,18 @@ interface StepCardProps {
 /** Full-depth election step card with TTS, expandable sections, and confusion callout */
 export default function StepCard({
   step, isActive, isCompleted, knowledgeLevel,
-  userConfusion, isFallbackContent,
+  userConfusion: _userConfusion, isFallbackContent: _isFallbackContent,
   onComplete, onSpeak, adaptationActive, isSpeaking, currentSpokenText,
   electionBodyUrl, onInteraction,
 }: StepCardProps) {
+  void _userConfusion;
+  void _isFallbackContent;
   const [showRequirements, setShowRequirements] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
-  // Always show detailedExplanation — it is the primary content for all levels.
-  // simpleExplanation is only used when the adaptive system kicks in.
+  // Adaptive mode should remain detailed but easier to understand.
   const content = adaptationActive
-    ? step.simpleExplanation
+    ? buildAdaptiveContent(step)
     : (step.detailedExplanation || step.description);
 
   const cardStyles = isCompleted
@@ -192,4 +193,62 @@ export default function StepCard({
       )}
     </div>
   );
+}
+
+function buildAdaptiveContent(step: ElectionStep): string {
+  const simple = (step.simpleExplanation || '').trim();
+  const detailed = (step.detailedExplanation || step.description || '').trim();
+
+  const sentenceCount = simple
+    ? simple.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean).length
+    : 0;
+
+  const hasRichSimple = simple.length >= 180 && sentenceCount >= 3;
+
+  let intro = hasRichSimple
+    ? simple
+    : toSimpleIndianEnglish(detailed || simple || step.description);
+
+  // Keep adaptive content substantive, never a one-liner.
+  if (intro.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean).length < 3) {
+    intro = `${intro}\n\nThis step is important because it helps you avoid mistakes and vote correctly on election day.`;
+  }
+
+  const reqPoints = step.requirements.slice(0, 3).map((req) => `- ${req}`);
+  const tipPoints = step.tips.slice(0, 2).map((tip) => `- ${tip}`);
+
+  const sections: string[] = [intro];
+
+  if (reqPoints.length > 0) {
+    sections.push(`What you need:\n${reqPoints.join('\n')}`);
+  }
+
+  if (tipPoints.length > 0) {
+    sections.push(`Easy tips:\n${tipPoints.join('\n')}`);
+  }
+
+  return sections.join('\n\n');
+}
+
+function toSimpleIndianEnglish(text: string): string {
+  const cleaned = text
+    .replace(/\s+/g, ' ')
+    .replace(/\btherefore\b/gi, 'so')
+    .replace(/\bhence\b/gi, 'so')
+    .replace(/\bhowever\b/gi, 'but')
+    .replace(/\bconstituency\b/gi, 'area')
+    .replace(/\bverification\b/gi, 'checking')
+    .replace(/\beligibility\b/gi, 'who can do this')
+    .replace(/\bdisqualified\b/gi, 'not allowed')
+    .trim();
+
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  if (sentences.length === 0) return text;
+
+  return sentences.join(' ');
 }

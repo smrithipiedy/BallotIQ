@@ -23,7 +23,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-family: inherit;
 }
 
 /* Animate-in utilities */

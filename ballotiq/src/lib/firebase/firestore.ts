@@ -143,7 +143,7 @@ export async function saveProgress(progress: UserProgress): Promise<void> {
     const ref = doc(db, 'sessions', progress.sessionId, 'progress', 'current');
     await setDoc(ref, { ...progress, lastUpdated: new Date().toISOString() }, { merge: true });
   } catch (error) {
-    console.error('[Firestore] Failed to save progress:', error);
+    console.warn('[Firestore] Failed to save progress:', error);
   }
 }
 
@@ -166,9 +166,9 @@ export async function getProgress(sessionId: string): Promise<UserProgress | nul
 }
 
 /**
- * Saves a chat message to the session's message collection.
- * @param sessionId - Session identifier
- * @param message - ChatMessage to save
+ * Saves a chat message to Firestore for session history.
+ * @param sessionId - Unique identifier for the user's current session
+ * @param message - ChatMessage object containing role, content, and timestamp
  */
 export async function saveChatMessage(
   sessionId: string,
@@ -180,7 +180,7 @@ export async function saveChatMessage(
     const ref = doc(db, 'sessions', sessionId, 'messages', message.id);
     await setDoc(ref, message);
   } catch (error) {
-    console.error('[Firestore] Failed to save chat message:', error);
+    console.warn('[Firestore] Failed to save chat message:', error);
   }
 }
 

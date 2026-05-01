@@ -9,7 +9,7 @@ import { getFAQResponse } from './faqDatabase';
 import { askAssistant } from '@/lib/gemini/client';
 import type { ChatMessage, ElectionStep, UserContext } from '@/types';
 import { logger } from '@/lib/logger';
-import { getCountryByCode } from '@/lib/constants/countries';
+import { COUNTRIES, getCountryByCode } from '@/lib/constants/countries';
 
 interface AssistantResponse {
   content: string;
@@ -29,10 +29,36 @@ export async function getAssistantResponse(
   chatHistory: ChatMessage[],
   aiEnabled: boolean = true
 ): Promise<AssistantResponse> {
+  const normalizedQuestion = question.trim().toLowerCase();
   const intent = detectIntent(question);
   const countryData = getCountryByCode(userContext.countryCode);
   const officialName = countryData?.electionBody || userContext.electionBody || (userContext.countryName + ' Election Body');
   const officialUrl = countryData?.electionBodyUrl || userContext.electionBodyUrl || `https://www.google.com/search?q=${encodeURIComponent(userContext.countryName + ' official election website')}`;
+
+  // 0. Fast scope guards for speed and consistency
+  const isOnTopic = isAllowedTopic(normalizedQuestion);
+  if (!isOnTopic) {
+    return {
+      content: `I can only help with elections, voting, and civic politics. I am not built for unrelated topics. You can ask about voter registration, eligibility, election dates, polling stations, voting process, election rules, political systems, or how elections work in ${userContext.countryName}.`,
+      source: 'fallback',
+      officialSource: {
+        name: officialName,
+        url: officialUrl
+      }
+    };
+  }
+
+  const mentionedCountry = detectMentionedCountry(normalizedQuestion);
+  if (mentionedCountry && mentionedCountry.code !== userContext.countryCode.toUpperCase()) {
+    return {
+      content: `Your current assistant is configured for ${userContext.countryName}. I cannot answer election process questions for ${mentionedCountry.name} in this session. Please switch country from the home page and then ask again.`,
+      source: 'fallback',
+      officialSource: {
+        name: officialName,
+        url: officialUrl
+      }
+    };
+  }
   
   // 1. Try FAQ Engine first for specific election intents (Speed & Accuracy)
   if (intent !== 'unknown') {
@@ -78,4 +104,20 @@ export async function getAssistantResponse(
       url: officialUrl
     }
   };
+}
+
+function isAllowedTopic(question: string): boolean {
+  const civicKeywords = [
+    'election', 'elections', 'vote', 'voting', 'voter', 'ballot', 'booth', 'poll', 'polling',
+    'constituency', 'candidate', 'campaign', 'manifesto', 'democracy', 'parliament', 'assembly',
+    'president', 'prime minister', 'senate', 'congress', 'governor', 'mayor', 'municipal',
+    'registration', 'electoral roll', 'epic', 'evm', 'vvpat', 'commission', 'politic', 'policy',
+    'government', 'governance', 'public office', 'party', 'coalition', 'ideology', 'civic'
+  ];
+  return civicKeywords.some((k) => question.includes(k));
+}
+
+function detectMentionedCountry(question: string): { code: string; name: string } | null {
+  const matched = COUNTRIES.find((country) => question.includes(country.name.toLowerCase()));
+  return matched ? { code: matched.code, name: matched.name } : null;
 }

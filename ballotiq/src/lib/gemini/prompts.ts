@@ -61,6 +61,7 @@ export function buildPersonalizedGuidePrompt(
 - tips: 4-5 items with actionable advice including official website URLs.`
     : `BEGINNER DEPTH REQUIREMENTS (strictly enforced):
 - detailedExplanation: 4-6 sentences minimum. Use clear, jargon-free language. Include one real-world analogy to make the concept concrete. Explain WHY this step matters to the voter.
+- simpleExplanation: A simplified version of the concept written in plain, everyday language. Must be 4-6 sentences minimum. Do NOT shorten the explanation — make it EASIER to understand, not shorter. Use simple words, relatable comparisons, and break complex ideas into small steps. A 10-year-old should be able to follow this.
 - requirements: 3-4 items written in plain English (e.g., "A government-issued photo ID like your passport or driver's license").
 - tips: 3-4 practical tips written as friendly advice (e.g., "Register at least 2 weeks before the deadline to avoid last-minute issues").`;
 
@@ -85,7 +86,7 @@ Each step MUST be a JSON object with ALL of these fields:
   "title": "clear step title",
   "description": "1-2 sentence summary",
   "detailedExplanation": "<MEETS DEPTH REQUIREMENTS ABOVE>",
-  "simpleExplanation": "1 sentence in plain English with an analogy",
+  "simpleExplanation": "<MEETS BEGINNER DEPTH REQUIREMENTS ABOVE — MUST BE 4-6 SENTENCES MINIMUM>",
   "timeline": "when this happens (e.g., '30 days before election')",
   "requirements": ["item1", "item2", ...],
   "tips": ["tip1", "tip2", ...],
@@ -116,6 +117,7 @@ export function buildMicroQuizPrompt(
     : 'Create an EASY question testing basic recall of the most important fact in this step. Wrong options should be clearly wrong but not absurd.';
 
   return `Generate ONE quiz question about this election step.
+The question field must always be a complete, natural sentence ending with a question mark. Never use single words or short phrases as questions. BAD: 'Age?' GOOD: 'What is the minimum age required to vote in this country?'
 Step title: "${step.title}"
 Step content: "${step.detailedExplanation || step.description}"
 Knowledge level: ${knowledgeLevel}
@@ -137,11 +139,13 @@ export function buildReExplanationPrompt(
     : knowledgeLevel === 'intermediate'
     ? 'Clarify exactly why the chosen answer is wrong and what makes the correct answer right. Be specific about the procedure or rule.'
     : 'Provide deeper technical and legal context. Reference the specific law, article, or procedural rule that makes the correct answer right.';
+  
+  const safeUserAnswer = !userAnswer || userAnswer.trim() === '' ? 'an incorrect option' : userAnswer;
+
   return `Correct answer re-explanation for a ${knowledgeLevel} learner.
 Step: "${step.title}"
-Wrong: "${userAnswer}"
-Right: "${correctAnswer}"
-Task: Explain why "${userAnswer}" is wrong and why "${correctAnswer}" is right. 
+The user selected "${safeUserAnswer}" which is incorrect. The correct answer is "${correctAnswer}".
+Task: Explain why "${safeUserAnswer}" is wrong and why "${correctAnswer}" is right. 
 ${approach}
 MAX 2 SENTENCES. BE FAST.`;
 }
@@ -188,7 +192,6 @@ export function buildAssistantSystemPrompt(
   const currentDate = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   });
-  const steps = completedSteps.map((s) => s.title).join(', ');
   const depthNote = userContext.knowledgeLevel === 'advanced'
     ? 'Be precise. Reference specific laws, articles, or procedures by name when relevant.'
     : userContext.knowledgeLevel === 'intermediate'
@@ -212,7 +215,9 @@ RULES (strictly follow):
 5. Be direct and relevant. Do not talk about the "Initial concern" unless the current question is related to it.
 6. If unsure, say so and point to the official election body.
 7. Stay on ${userContext.countryName} elections only.
-8. Never express political opinions. Always be non-partisan.`;
+8. Never express political opinions. Always be non-partisan.
+9. If the user asks an unrelated topic (not elections/voting/civic politics), politely refuse in 1-2 lines and explain what they can ask instead.
+10. CRITICAL: simpleExplanation must never be a single sentence. If your simpleExplanation is shorter than 3 sentences, rewrite it.`;
 }
 
 /**

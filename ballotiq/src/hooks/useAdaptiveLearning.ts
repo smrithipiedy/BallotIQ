@@ -19,9 +19,12 @@ interface UseAdaptiveLearningReturn {
   currentStepIndex: number;
   adaptationActive: boolean;
   consecutiveErrors: number;
+  showAdaptationPrompt: boolean;
   reExplanation: string | null;
   isReExplaining: boolean;
   handleMicroQuizResult: (correct: boolean, step: ElectionStep, userAnswer: string, correctAnswer: string) => Promise<void>;
+  confirmAdaptation: () => void;
+  dismissAdaptation: () => void;
   moveToNextStep: () => void;
   setCurrentStepIndex: (index: number) => void;
 }
@@ -43,9 +46,25 @@ export function useAdaptiveLearning(
     return firstUncompleted === -1 ? 0 : firstUncompleted;
   });
   const [adaptationActive, setAdaptationActive] = useState(false);
+  const [showAdaptationPrompt, setShowAdaptationPrompt] = useState(false);
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
   const [reExplanation, setReExplanation] = useState<string | null>(null);
   const [isReExplaining, setIsReExplaining] = useState(false);
+
+  const confirmAdaptation = useCallback(() => {
+    setAdaptationActive(true);
+    setShowAdaptationPrompt(false);
+    if (userContext) {
+      const updatedCtx = { ...userContext, adaptationActive: true };
+      saveUserContext(updatedCtx).catch(console.error);
+      logAdaptationTriggered('user_request', currentStepIndex).catch(console.error);
+    }
+  }, [userContext, currentStepIndex]);
+
+  const dismissAdaptation = useCallback(() => {
+    setConsecutiveErrors(0);
+    setShowAdaptationPrompt(false);
+  }, []);
 
   const handleMicroQuizResult = useCallback(async (
     correct: boolean,
@@ -61,19 +80,14 @@ export function useAdaptiveLearning(
 
     setConsecutiveErrors((prev) => {
       const next = prev + 1;
-      // Trigger adaptation after threshold
+      // Show adaptation prompt after threshold
       if (next >= ADAPTATION_THRESHOLD && !adaptationActive) {
-        setAdaptationActive(true);
-        if (userContext) {
-          const updatedCtx = { ...userContext, adaptationActive: true, consecutiveErrors: next };
-          saveUserContext(updatedCtx).catch(console.error);
-          logAdaptationTriggered('consecutive_errors', currentStepIndex).catch(console.error);
-        }
+        setShowAdaptationPrompt(true);
       }
       return next;
     });
 
-    const isNowAdaptive = adaptationActive || (consecutiveErrors + 1 >= ADAPTATION_THRESHOLD);
+    const isNowAdaptive = adaptationActive;
 
     // Fetch re-explanation from Gemini
     setIsReExplaining(true);
@@ -89,7 +103,7 @@ export function useAdaptiveLearning(
     } finally {
       setIsReExplaining(false);
     }
-  }, [consecutiveErrors, adaptationActive, userContext, currentStepIndex]);
+  }, [adaptationActive, userContext, currentStepIndex]);
 
   const moveToNextStep = useCallback(() => {
     if (currentStepIndex < steps.length - 1) {
@@ -99,8 +113,9 @@ export function useAdaptiveLearning(
   }, [currentStepIndex, steps.length]);
 
   return {
-    currentStepIndex, adaptationActive, consecutiveErrors,
+    currentStepIndex, adaptationActive, consecutiveErrors, showAdaptationPrompt,
     reExplanation, isReExplaining,
-    handleMicroQuizResult, moveToNextStep, setCurrentStepIndex,
+    handleMicroQuizResult, confirmAdaptation, dismissAdaptation,
+    moveToNextStep, setCurrentStepIndex,
   };
 }

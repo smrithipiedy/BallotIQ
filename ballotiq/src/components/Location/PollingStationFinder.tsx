@@ -7,19 +7,22 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { LocateFixed, MapPin } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import TranslatedText from '@/components/ui/TranslatedText';
 import type { Country } from '@/types';
 
 interface PollingStationFinderProps {
   country: Country;
+  fullScreen?: boolean;
 }
 
-export default function PollingStationFinder({ country }: PollingStationFinderProps) {
+export default function PollingStationFinder({ country, fullScreen = false }: PollingStationFinderProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -40,14 +43,14 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
           libraries: ['places'],
         });
 
-        const { Map, InfoWindow } = await importLibrary('maps') as google.maps.MapsLibrary;
+        const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
         const { Place, SearchNearbyRankPreference } = await importLibrary('places') as google.maps.PlacesLibrary;
         const { AdvancedMarkerElement, PinElement } = await importLibrary('marker') as google.maps.MarkerLibrary;
 
         if (cancelled || !mapRef.current) return;
 
         const position = await getCurrentPosition(country.code);
-        const infoWindow = new InfoWindow();
+        if (!cancelled) setUserPosition(position);
 
         const map = new Map(mapRef.current, {
           center: position,
@@ -56,18 +59,11 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
           mapTypeControl: false,
           streetViewControl: false,
           clickableIcons: false, // Disable clicks on standard POIs
-          styles: [
-            { elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-            { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
-            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-            { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#475569' }] },
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#020617' }] },
-            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-          ],
-          disableDefaultUI: true,
+          fullscreenControl: false,
+          disableDefaultUI: false,
           zoomControl: true,
         });
+        mapInstanceRef.current = map;
 
         // User location marker
         const userPin = new PinElement({
@@ -113,28 +109,11 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
                 scale: 0.8,
               });
 
-              const marker = new AdvancedMarkerElement({
+              new AdvancedMarkerElement({
                 position: place.location,
                 map,
                 title: place.displayName ?? 'Election Office',
                 content: officePin.element,
-              });
-
-              // Add click listener for InfoWindow
-              marker.addListener('click', () => {
-                const destination = encodeURIComponent(place.formattedAddress || place.displayName || '');
-                const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
-
-                const contentString = `
-                  <div style="padding: 8px; color: #0f172a; font-family: sans-serif; max-width: 200px;">
-                    <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">${place.displayName}</h4>
-                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #475569;">${place.formattedAddress || 'Location nearby'}</p>
-                    <a href="${directionsUrl}" target="_blank" style="display: block; background: #2563eb; color: white; text-align: center; padding: 6px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 600;">Get Directions</a>
-                  </div>
-                `;
-
-                infoWindow.setContent(contentString);
-                infoWindow.open(map, marker);
               });
             }
           });
@@ -151,76 +130,70 @@ export default function PollingStationFinder({ country }: PollingStationFinderPr
     initMap();
     return () => {
       cancelled = true;
+      mapInstanceRef.current = null;
       if (currentMapRef) {
         currentMapRef.innerHTML = '';
       }
     };
-  }, [country.code, country.electionBody, country.electionBodyUrl]);
+  }, [country.code]);
 
   if (error) {
     return (
       <div className="p-6 bg-white/5 border border-white/10 rounded-xl text-center space-y-3">
         <MapPin className="w-8 h-8 text-gray-500 mx-auto" />
-        <p className="text-gray-400">Find your polling station on the official website:</p>
-        <a
-          href={country.electionBodyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
-          aria-label={`Visit ${country.electionBody} website`}
-        >
-          <span>{country.electionBody}</span>
-          <ExternalLink className="w-4 h-4" />
-        </a>
+        <p className="text-gray-400">
+          <TranslatedText text="Unable to load polling map right now." />
+        </p>
       </div>
     );
   }
 
   return (
     <ErrorBoundary componentName="PollingStationFinder">
-      <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[600px] rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 shadow-2xl group">
+      <div
+        className={`relative w-full h-full overflow-hidden group ${
+          fullScreen
+            ? 'rounded-none border-0 bg-transparent shadow-none'
+            : 'rounded-[2.5rem] border border-white/10 bg-white/5 shadow-2xl'
+        }`}
+      >
         {/* Map instance */}
         <div
           ref={mapRef}
-          className="w-full h-full grayscale-[0.2] contrast-[1.1] brightness-[0.8] hover:grayscale-0 hover:brightness-100 transition-all duration-700"
+          className="w-full h-full"
           aria-label="Map showing nearby polling stations"
           role="application"
         />
 
-        {/* Floating Header Overlay */}
-        <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pointer-events-none">
-          <div className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-950/70 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto">
-            <h3 className="text-sm sm:text-lg font-bold text-white flex items-center gap-2">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-              <TranslatedText text="Station Finder" />
-            </h3>
-            <p className="text-[9px] sm:text-[10px] text-gray-400 font-medium tracking-tight mt-0.5">
-              <TranslatedText text="Registration centers near you" />
-            </p>
-          </div>
-
-          <a
-            href={country.electionBodyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-3 sm:px-6 sm:py-4 rounded-2xl sm:rounded-3xl bg-blue-600 text-white font-bold text-[10px] sm:text-xs flex items-center justify-center gap-2 hover:bg-blue-500 hover:scale-105 transition-all shadow-xl shadow-blue-600/20 pointer-events-auto"
-          >
-            <span className="whitespace-nowrap">
-              <TranslatedText text="Official page for" /> {country.name}
-            </span>
-            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-          </a>
-        </div>
+        {/* Recenter control */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!mapInstanceRef.current || !userPosition) return;
+            mapInstanceRef.current.panTo(userPosition);
+            mapInstanceRef.current.setZoom(14);
+          }}
+          className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10 p-2.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition-colors"
+          aria-label="Recenter to your location"
+        >
+          <LocateFixed className="w-4 h-4" />
+        </button>
 
         {/* Legend Overlay */}
-        <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-950/70 backdrop-blur-xl border border-white/10 flex items-center gap-4 sm:gap-6 pointer-events-auto">
+        <div
+          className={`absolute left-3 sm:left-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-950/75 backdrop-blur-xl border border-white/10 flex items-center gap-4 sm:gap-6 pointer-events-auto ${
+            fullScreen ? 'bottom-24 sm:bottom-6' : 'bottom-3 sm:bottom-6'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-500 rounded-full shadow-[0_0_12px_rgba(59,130,246,0.7)]" />
             <span className="text-[9px] sm:text-[10px] text-gray-300 font-bold uppercase tracking-wider">You</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-            <span className="text-[9px] sm:text-[10px] text-gray-300 font-bold uppercase tracking-wider">Election Office</span>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.7)]" />
+            <span className="text-[9px] sm:text-[10px] text-gray-300 font-bold uppercase tracking-wider">
+              <TranslatedText text="Polling Booths" />
+            </span>
           </div>
         </div>
 

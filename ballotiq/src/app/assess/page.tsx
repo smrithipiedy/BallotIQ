@@ -74,19 +74,23 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4">
-        <button
-          onClick={currentQuestion === 0 ? () => router.push('/') : goBack}
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-          aria-label={currentQuestion === 0 ? 'Back to home' : 'Previous question'}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back</span>
-        </button>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <button
+            onClick={currentQuestion === 0 ? () => router.push('/') : goBack}
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            aria-label={currentQuestion === 0 ? 'Back to home' : 'Previous question'}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h1 className="text-base sm:text-lg font-black text-white tracking-tight leading-none whitespace-nowrap">
+            Assessment
+          </h1>
+        </div>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="hidden sm:flex items-center gap-2">
             <img 
               src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`} 
-              alt="" 
+              alt={`Flag of ${country.name}`} 
               className="w-6 h-4 object-cover rounded-sm shadow-sm"
             />
             <span className="text-sm text-gray-400">{country.name}</span>
