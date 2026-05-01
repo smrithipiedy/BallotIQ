@@ -3,13 +3,13 @@
 /**
  * Language selector dropdown for 8 supported languages.
  * Integrated with TranslationContext for global state management.
+ * Includes focus trapping when the dropdown is open.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Globe, ChevronDown, Check } from 'lucide-react';
 import { LANGUAGES } from '@/lib/constants/languages';
 import { useTranslation } from '@/hooks/useTranslation';
-import type { SupportedLanguage } from '@/types';
 
 interface LanguageSelectorProps {
   className?: string;
@@ -21,10 +21,12 @@ export default function LanguageSelector({ className = '' }: LanguageSelectorPro
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const currentLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
 
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -35,36 +37,95 @@ export default function LanguageSelector({ className = '' }: LanguageSelectorPro
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Focus restoration when dropdown closes
   useEffect(() => {
-    if (isOpen) {
-      setSearch('');
-      setTimeout(() => inputRef.current?.focus(), 100);
+    if (!isOpen && triggerRef.current && document.activeElement !== triggerRef.current) {
+      triggerRef.current.focus();
     }
   }, [isOpen]);
 
-  const filteredLanguages = LANGUAGES.filter(l => 
-    l.name.toLowerCase().includes(search.toLowerCase()) || 
+  // Focus trapping when dropdown is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const container = dropdownRef.current;
+      if (!container) return;
+
+      const focusable = container.querySelectorAll<HTMLElement>(
+        'button, input, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  const toggleOpen = useCallback(() => {
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setSearch('');
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+      return next;
+    });
+  }, []);
+
+  const filteredLanguages = LANGUAGES.filter(l =>
+    l.name.toLowerCase().includes(search.toLowerCase()) ||
     l.nativeName.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-200 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300"
+        ref={triggerRef}
+        onClick={toggleOpen}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setIsOpen(false);
+        }}
+        className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-200 hover:bg-white/10 hover:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
         aria-label="Change language"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <Globe className="w-4 h-4 text-blue-400" />
+        <Globe className="w-4 h-4 text-blue-400" aria-hidden="true" />
         <span className="font-medium">{currentLang.nativeName}</span>
-        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
       </button>
 
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-56 bg-[#070718] border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+          className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-[#070718] border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
           role="listbox"
+          id="language-listbox"
         >
           <div className="px-3 py-2 border-b border-white/5 mb-1">
             <input
@@ -73,8 +134,12 @@ export default function LanguageSelector({ className = '' }: LanguageSelectorPro
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search language..."
-              className="w-full px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
-              onKeyDown={(e) => e.stopPropagation()}
+              className="w-full px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setIsOpen(false);
+                e.stopPropagation();
+              }}
+              aria-label="Search languages"
             />
           </div>
           <div className="max-h-60 overflow-y-auto">
@@ -87,6 +152,12 @@ export default function LanguageSelector({ className = '' }: LanguageSelectorPro
                       setLanguage(lang.code);
                       setIsOpen(false);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setLanguage(lang.code);
+                        setIsOpen(false);
+                      }
+                    }}
                     className={`w-full px-4 py-2.5 text-sm flex items-center justify-between transition-colors ${
                       language === lang.code
                         ? 'bg-blue-500/10 text-blue-400 font-semibold'
@@ -95,16 +166,16 @@ export default function LanguageSelector({ className = '' }: LanguageSelectorPro
                     role="option"
                     aria-selected={language === lang.code}
                   >
-                    <div className="flex flex-col items-start">
+                    <div className="flex flex-col items-start text-left">
                       <span>{lang.nativeName}</span>
                       <span className="text-[10px] opacity-50">{lang.name}</span>
                     </div>
-                    {language === lang.code && <Check className="w-4 h-4" />}
+                    {language === lang.code && <Check className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </li>
               ))
             ) : (
-              <p className="px-4 py-4 text-[10px] text-gray-600 text-center uppercase tracking-widest font-bold">No results</p>
+              <p className="px-4 py-4 text-[10px] text-gray-600 text-center uppercase tracking-widest font-bold" role="status">No results found</p>
             )}
           </div>
         </div>

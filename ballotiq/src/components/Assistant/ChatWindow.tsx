@@ -2,11 +2,11 @@
 
 /**
  * Context-aware AI chat window.
- * Passes full user context to Gemini for personalized responses.
+ * Orchestrates ChatHistory, ChatInput, and SuggestedQuestions.
+ * All rendering is delegated to sub-components.
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Mic, MicOff } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import type { ChatMessage, ElectionStep, UserContext } from '@/types';
 import { getAssistantResponse } from '@/lib/assistant/hybridAssistant';
@@ -15,11 +15,10 @@ import { logAssistantQuestion } from '@/lib/firebase/analytics';
 import { sanitizeUserInput } from '@/lib/security/sanitize';
 import { useSTT } from '@/hooks/useSTT';
 import { getLanguageInfo } from '@/lib/constants/languages';
-import TTSButton from '@/components/ui/TTSButton';
-import TranslatedText from '@/components/ui/TranslatedText';
-import SuggestedQuestions from './SuggestedQuestions';
 import AIStatusBadge from '@/components/ui/AIStatusBadge';
-import { ExternalLink } from 'lucide-react';
+import TranslatedText from '@/components/ui/TranslatedText';
+import ChatHistory from './ChatHistory';
+import ChatInput from './ChatInput';
 
 interface ChatWindowProps {
   userContext: UserContext;
@@ -39,37 +38,28 @@ export default function ChatWindow({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const maxChars = 300;
-  
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = messages;
+
   const langInfo = getLanguageInfo(userContext.language);
-  const { isListening, transcript, startListening, stopListening, setTranscript } = useSTT(langInfo?.googleTTSCode ?? 'en-US');
-
-  // Tracking if voice was used for the current interaction
-  const [usedVoice, setUsedVoice] = useState(false);
-
-  useEffect(() => {
-    if (transcript && !isListening) {
-      setInput(transcript);
-      setUsedVoice(true);
-      sendMessage(transcript, true);
-      setTranscript('');
-    }
-  }, [transcript, isListening]);
+  const { isListening, startListening, stopListening } = useSTT(
+    langInfo?.googleTTSCode ?? 'en-US',
+    (finalText) => { void sendMessage(finalText, true); },
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async (text: string, fromVoice: boolean = false) => {
+  /** Sends a message and streams an AI response */
+  async function sendMessage(text: string, fromVoice: boolean = false) {
     const sanitized = sanitizeUserInput(text);
     if (!sanitized.trim() || isLoading) return;
 
     setShowSuggestions(false);
     const userMsg: ChatMessage = {
-      id: `msg_${Date.now()}_user`,
-      role: 'user',
-      content: sanitized,
-      timestamp: new Date().toISOString(),
+      id: `msg_${Date.now()}_user`, role: 'user',
+      content: sanitized, timestamp: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -79,54 +69,32 @@ export default function ChatWindow({
     try {
       await saveChatMessage(userContext.sessionId, userMsg);
       await logAssistantQuestion(userContext.countryCode, userContext.knowledgeLevel);
-
-      const result = await getAssistantResponse(sanitized, userContext, completedSteps, messages);
-      const response = result.content;
-
-      // Detect AI failure responses
+      const result = await getAssistantResponse(sanitized, userContext, completedSteps, [...messagesRef.current, userMsg]);
       onAiStatusChange?.(result.source !== 'error');
 
       const assistantMsg: ChatMessage = {
-        id: `msg_${Date.now()}_assistant`,
-        role: 'assistant',
-        content: response,
-        timestamp: new Date().toISOString(),
+        id: `msg_${Date.now()}_assistant`, role: 'assistant',
+        content: result.content, timestamp: new Date().toISOString(),
         officialSource: result.officialSource,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
       await saveChatMessage(userContext.sessionId, assistantMsg);
-
-      // Auto-speak if the user initiated with voice
-      if (fromVoice || usedVoice) {
-        onSpeak(response);
-        setUsedVoice(false);
-      }
+      if (fromVoice) onSpeak(result.content);
     } catch {
       onAiStatusChange?.(false);
-      const errorMsg: ChatMessage = {
-        id: `msg_${Date.now()}_error`,
-        role: 'assistant',
-        content: 'Something went wrong. Please try again.',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => [...prev, {
+        id: `msg_${Date.now()}_error`, role: 'assistant',
+        content: 'Something went wrong. Please try again.', timestamp: new Date().toISOString(),
+      }]);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage(input);
-    }
-  };
+  }
 
   return (
     <ErrorBoundary componentName="ChatWindow">
       <div className="flex flex-col h-full">
-        {/* Header */}
         <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <p className="text-xs text-gray-500">
             <TranslatedText text="Personalized for" /> {userContext.countryName} • <TranslatedText text={userContext.knowledgeLevel} /> <TranslatedText text="level" />
@@ -134,135 +102,31 @@ export default function ChatWindow({
           <AIStatusBadge mode={isLoading ? 'live' : 'cached'} />
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="space-y-6 animate-in fade-in duration-1000">
-              {userContext.mainConfusion === 'Direct query' && (
-                <div className="flex gap-4 justify-start">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-lg shadow-blue-500/5">
-                    <Bot className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="max-w-[85%] px-6 py-4 rounded-[2rem] text-[15px] leading-relaxed bg-white/[0.03] border border-white/5 text-gray-200 rounded-tl-sm shadow-xl">
-                    <p>
-                      <TranslatedText text={`Hello! I'm your BallotIQ assistant for ${userContext.countryName}.`} />
-                      <br /><br />
-                      <TranslatedText text="I'm here to help you understand the election process, key dates, and how to participate. You can type your question below or click the microphone to talk to me!" />
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {showSuggestions && (
-                <SuggestedQuestions
-                  countryName={userContext.countryName}
-                  onSelect={sendMessage}
-                />
-              )}
-            </div>
-          )}
+        <ChatHistory
+          ref={messagesEndRef}
+          messages={messages}
+          userContext={userContext}
+          isLoading={isLoading}
+          showSuggestions={showSuggestions}
+          isSpeaking={isSpeaking}
+          currentSpokenText={currentSpokenText}
+          onSpeak={onSpeak}
+          onSelectSuggestion={sendMessage}
+        />
 
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
-              {msg.role === 'assistant' && (
-                <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-lg shadow-blue-500/5">
-                  <Bot className="w-5 h-5 text-blue-400" />
-                </div>
-              )}
-              <div className={`max-w-[85%] px-6 py-4 rounded-[2rem] text-[15px] leading-relaxed backdrop-blur-xl transition-all ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-sm shadow-xl shadow-blue-500/10'
-                  : 'bg-white/[0.03] border border-white/5 text-gray-200 rounded-tl-sm'
-              }`}>
-                <p className="whitespace-pre-wrap"><TranslatedText text={msg.content} /></p>
-                {msg.role === 'assistant' && (
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <TTSButton text={msg.content} isSpeaking={isSpeaking} currentText={currentSpokenText} onToggle={onSpeak} />
-                    <a 
-                      href={msg.officialSource?.url || userContext.electionBodyUrl || `https://www.google.com/search?q=${encodeURIComponent(userContext.countryName + ' official election website')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/10 px-2 py-1 rounded-md"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      <TranslatedText text={msg.officialSource?.name || userContext.electionBody || "Official Source"} />
-                    </a>
-                  </div>
-                )}
-              </div>
-              {msg.role === 'user' && (
-                <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-lg shadow-indigo-500/5">
-                  <User className="w-5 h-5 text-indigo-400" />
-                </div>
-              )}
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="flex gap-3 justify-start">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-blue-400" />
-              </div>
-              <div className="px-4 py-3 bg-white/5 border border-white/10 rounded-2xl rounded-bl-sm">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Disclaimer */}
         <p className="px-4 py-1 text-[10px] text-gray-600 text-center">
           <TranslatedText text="BallotIQ provides non-partisan educational information only. Not official election guidance." />
         </p>
 
-        {/* Input */}
-        <div className="p-3 sm:p-6 border-t border-white/5 bg-white/[0.01]">
-          <div className="flex gap-2 sm:gap-3">
-            <div className="flex-1 relative group">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value.slice(0, maxChars))}
-                onKeyDown={handleKeyDown}
-                placeholder={isListening ? "Listening..." : "Ask about elections..."}
-                className={`w-full px-4 sm:px-6 py-3 sm:py-4 pr-14 bg-white/[0.03] border ${isListening ? 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-white/10'} rounded-xl sm:rounded-2xl text-sm sm:text-[15px] text-white placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/20 transition-all`}
-                rows={1}
-                aria-label="Type your question"
-                disabled={isLoading}
-              />
-              <span className="absolute right-3 bottom-1.5 text-[9px] sm:text-[10px] font-medium tracking-tighter text-gray-600">{input.length}/{maxChars}</span>
-            </div>
-            
-            <button
-              onClick={isListening ? stopListening : startListening}
-              disabled={isLoading}
-              className={`group px-3 sm:px-4 rounded-xl sm:rounded-2xl transition-all duration-300 flex items-center justify-center flex-shrink-0 ${
-                isListening 
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' 
-                  : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
-              }`}
-              title={isListening ? "Stop Listening" : "Talk to AI"}
-            >
-              {isListening ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
-            </button>
-
-            <button
-              onClick={() => {
-                stopListening();
-                sendMessage(input);
-              }}
-              disabled={!input.trim() || isLoading}
-              className="group px-4 sm:px-6 bg-white text-black rounded-xl sm:rounded-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5 flex-shrink-0"
-              aria-label="Send message"
-            >
-              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
-        </div>
+        <ChatInput
+          input={input}
+          onInputChange={setInput}
+          onSend={() => { stopListening(); sendMessage(input); }}
+          isLoading={isLoading}
+          isListening={isListening}
+          onStartListening={startListening}
+          onStopListening={stopListening}
+        />
       </div>
     </ErrorBoundary>
   );

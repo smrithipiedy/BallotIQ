@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   Sparkles,
   BookOpen,
-  Zap,
 } from 'lucide-react';
 import type { UserContext } from '@/types';
 import { getCountryByCode } from '@/lib/constants/countries';
@@ -20,6 +19,7 @@ import { useProgress } from '@/hooks/useProgress';
 import { useElectionGuide } from '@/hooks/useElectionGuide';
 import { useMicroQuiz } from '@/hooks/useMicroQuiz';
 import { useAdaptiveLearning } from '@/hooks/useAdaptiveLearning';
+import AdaptationNotice from '@/components/Journey/AdaptationNotice';
 import { useProactiveAssistant } from '@/hooks/useProactiveAssistant';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import TranslatedText from '@/components/ui/TranslatedText';
@@ -30,6 +30,7 @@ import { ProactiveSuggestionBanner } from '@/components/Journey/ProactiveSuggest
 import PollingStationFinder from '@/components/Location/PollingStationFinder';
 import LanguageSelector from '@/components/ui/LanguageSelector';
 import AIStatusBadge from '@/components/ui/AIStatusBadge';
+import Image from 'next/image';
 
 /**
  * Older design of the Learn page — Optimized for unified UI.
@@ -40,17 +41,14 @@ export default function LearnPage() {
   const params = useParams();
   const countryCode = (params.country as string) || 'IN';
   
-  const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [userContext] = useState<UserContext | null>(() => {
+    if (typeof window === 'undefined') return null;
 
-  // Load user context from session
-  useEffect(() => {
     const stored = sessionStorage.getItem('ballotiq_context');
-    if (!stored) {
-      router.push('/');
-      return;
-    }
+    if (!stored) return null;
+
     const ctx = JSON.parse(stored) as UserContext;
-    
+
     // Hydrate missing metadata for legacy sessions
     if (!ctx.electionBody || !ctx.electionBodyUrl) {
       const countryData = getCountryByCode(ctx.countryCode);
@@ -60,15 +58,18 @@ export default function LearnPage() {
         sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
       }
     }
-    
-    setUserContext(ctx);
-  }, [router]);
+
+    return ctx;
+  });
+
+  useEffect(() => {
+    if (!userContext) router.push('/');
+  }, [router, userContext]);
 
   const country = useMemo(() => getCountryByCode(countryCode), [countryCode]);
 
   // Data fetching
   const { steps, loading: guideLoading, source: guideSource } = useElectionGuide(countryCode, userContext);
-  const aiActive = guideSource === 'gemini' || guideSource === 'cache';
   
   // Progress tracking
   const { completeStep, completedSteps, saveMicroQuizResult } = useProgress(
@@ -78,10 +79,11 @@ export default function LearnPage() {
 
   // Adaptive learning core
   const { 
-    currentStepIndex, setCurrentStepIndex, 
+    currentStepIndex, setCurrentStepIndex,
     adaptationActive, reExplanation, isReExplaining,
-    consecutiveErrors,
+    consecutiveErrors, showAdaptationPrompt,
     handleMicroQuizResult: handleAdaptiveResult,
+    confirmAdaptation, dismissAdaptation,
     moveToNextStep
   } = useAdaptiveLearning(userContext, steps, completedSteps);
 
@@ -103,20 +105,19 @@ export default function LearnPage() {
   const { 
     question, selectedAnswer, isCorrect, showResult, 
     explanation, loading: quizLoading, submitAnswer, reset: resetQuiz 
-  } = useMicroQuiz(activeStep, userContext, (correct) => {
-    if (activeStep && question) {
-      const userAnswer = selectedAnswer !== null ? question.options[selectedAnswer] : '';
-      const correctAnswer = question.options[question.correctIndex];
-      
-      saveMicroQuizResult(activeStep.id, correct);
-      handleAdaptiveResult(correct, activeStep, userAnswer, correctAnswer);
-    }
+  } = useMicroQuiz(activeStep, userContext, ({ correct, selectedAnswerText, correctAnswerText }) => {
+    if (!activeStep) return;
+
+    saveMicroQuizResult(activeStep.id, correct);
+    handleAdaptiveResult(correct, activeStep, selectedAnswerText, correctAnswerText);
   });
 
   // TTS support
   const { isSpeaking, currentText, toggle: toggleTTS, stop: stopTTS } = useTTS(
     userContext?.sessionId || ''
   );
+
+  const [activeTab, setActiveTab] = useState<'learn' | 'quiz' | 'assistant'>('learn');
 
   const handleStepClick = (index: number) => {
     stopTTS();
@@ -161,9 +162,12 @@ export default function LearnPage() {
             </button>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 shadow-inner">
-                <img 
-                  src={`https://flagcdn.com/w80/${countryCode.toLowerCase()}.png`} 
-                  alt="" 
+                <Image
+                  src={`https://flagcdn.com/w80/${countryCode.toLowerCase()}.png`}
+                  alt={`Flag of ${userContext.countryName}`}
+                  width={80}
+                  height={50}
+                  unoptimized
                   className="w-5 h-3.5 object-cover rounded-sm"
                 />
                 <span className="text-sm font-bold text-white tracking-tight leading-none">
@@ -180,19 +184,26 @@ export default function LearnPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <AIStatusBadge mode={guideSource === 'gemini' ? 'live' : guideSource === 'cache' ? 'cached' : 'error'} className="hidden sm:inline-flex" />
+            <AIStatusBadge mode={guideSource === 'gemini' ? 'live' : guideSource === 'cache' ? 'cached' : 'error'} />
             {adaptationActive && (
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest">
                 <Sparkles className="w-3 h-3" />
-                <TranslatedText text="Adaptive" />
+                <span className="hidden sm:inline"><TranslatedText text="Adaptive" /></span>
               </div>
             )}
             <button
               onClick={() => router.push('/assistant')}
-              className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-600 border border-blue-500 text-white font-black text-xs hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+              className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-600 border border-blue-500 text-white font-black text-xs hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
             >
               <MessageCircle className="w-4 h-4" />
               <span><TranslatedText text="AI Assistant" /></span>
+            </button>
+            <button
+              onClick={() => router.push('/polling-stations')}
+              className="hidden md:flex text-slate-400 hover:text-slate-200 text-sm items-center gap-1.5 transition-colors"
+            >
+              <MapPin className="w-4 h-4" />
+              <TranslatedText text="Find Polling Stations" />
             </button>
             <LanguageSelector />
           </div>
@@ -206,7 +217,7 @@ export default function LearnPage() {
         )}
       </header>
 
-      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)]">
+      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] pb-16 md:pb-0">
         {/* Mobile Progress Bar */}
         <div className="lg:hidden px-4 py-3 border-b border-white/5 bg-gray-950/40 flex items-center gap-3">
           <div className="flex-1 flex gap-1">
@@ -314,6 +325,13 @@ export default function LearnPage() {
                   </div>
                 )}
 
+                {/* Inline Adaptation Prompt */}
+                <AdaptationNotice
+                  isVisible={showAdaptationPrompt}
+                  onConfirm={confirmAdaptation}
+                  onDismiss={dismissAdaptation}
+                />
+
                 {/* Step Navigation Controls */}
                 <div className="flex items-center justify-between pt-8 border-t border-white/5">
                   <button
@@ -354,47 +372,124 @@ export default function LearnPage() {
               </div>
             )}
 
-            {/* Local Context: Polling Station Finder */}
-            {country && (
-              <section className="pt-24 space-y-10 border-t border-white/5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-4 rounded-[1.5rem] bg-blue-600/10 border border-blue-600/20 shadow-lg shadow-blue-500/5">
-                      <MapPin className="w-7 h-7 text-blue-400" />
+            {/* Completion Screen */}
+            {isAllStepsDone && (
+              <div className="fixed inset-0 z-[70] bg-[#020817] flex flex-col">
+                {/* Radial gradient overlay */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.08),transparent_60%)] pointer-events-none" />
+
+                {/* Top nav — same as learn page */}
+                <header className="relative z-10 shrink-0 border-b border-white/5 bg-[#020817]/80 backdrop-blur-xl">
+                  <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-4">
+                    <button
+                      onClick={() => router.push('/choose-path/')}
+                      className="p-2.5 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group shadow-sm"
+                      aria-label="Back to selection"
+                    >
+                      <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 shadow-inner">
+                        <Image
+                          src={`https://flagcdn.com/w80/${countryCode.toLowerCase()}.png`}
+                          alt={`Flag of ${userContext.countryName}`}
+                          width={80}
+                          height={50}
+                          unoptimized
+                          className="w-5 h-3.5 object-cover rounded-sm"
+                        />
+                        <span className="text-sm font-bold text-white tracking-tight leading-none">
+                          <TranslatedText text={userContext.countryName} />
+                        </span>
+                      </div>
+                      <AIStatusBadge mode={guideSource === 'gemini' ? 'live' : guideSource === 'cache' ? 'cached' : 'error'} />
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-white tracking-tight">
-                        <TranslatedText text="Polling Station Finder" />
+                    <LanguageSelector />
+                  </div>
+                </header>
+
+                {/* Center content */}
+                <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 md:p-12 pb-20 md:pb-12">
+                  <div className="max-w-2xl w-full text-center space-y-8">
+                    <div className="w-24 h-24 bg-blue-950/40 border border-blue-800/30 rounded-[2.5rem] rotate-12 flex items-center justify-center mx-auto">
+                      <Trophy className="w-12 h-12 text-yellow-400 -rotate-12" />
+                    </div>
+                    <div className="space-y-4">
+                      <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+                        <TranslatedText text="Curriculum Complete!" /> 🎉
                       </h2>
-                      <p className="text-sm text-gray-400 font-medium">
-                        <TranslatedText text="Interactive map showing voting centers for" /> {userContext.countryName}
+                      <p className="text-gray-400 text-lg md:text-xl font-medium leading-relaxed">
+                        <TranslatedText text="You've mastered the election process for" />{' '}{userContext.countryName}.{' '}
+                        <TranslatedText text="Ready to earn your certification?" />
                       </p>
                     </div>
-                  </div>
-                  
-                  <div className="px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <TranslatedText text="Live Data Active" />
+
+                    <button
+                      onClick={() => router.push('/quiz')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-3 font-medium text-[15px] w-full transition-colors"
+                    >
+                      <TranslatedText text="Take Final Quiz" />
+                    </button>
+
+                    <button
+                      onClick={() => router.push('/polling-stations')}
+                      className="text-slate-500 text-sm underline underline-offset-2 hover:text-slate-300 transition-colors"
+                    >
+                      <TranslatedText text="Find polling stations near you →" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="rounded-[3.5rem] overflow-hidden border border-white/10 bg-gray-950/50 shadow-2xl shadow-blue-500/5 group">
-                  <PollingStationFinder country={country} />
-                </div>
-              </section>
+                {/* Mobile bottom tab bar */}
+                <nav className="md:hidden shrink-0 bg-[#020817] border-t border-white/[0.06] flex items-center px-4">
+                  <button onClick={() => { router.push(`/learn/${countryCode}`); }} className="flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 text-slate-600"><BookOpen className="w-5 h-5" /><TranslatedText text="Learn" /></button>
+                  <button onClick={() => router.push('/quiz')} className="flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 text-slate-600"><Trophy className="w-5 h-5" /><TranslatedText text="Quiz" /></button>
+                  <button onClick={() => router.push('/polling-stations')} className="flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 text-slate-600"><MapPin className="w-5 h-5" /><TranslatedText text="Stations" /></button>
+                  <button onClick={() => router.push('/assistant')} className="flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 text-slate-600"><MessageCircle className="w-5 h-5" /><TranslatedText text="Assistant" /></button>
+                </nav>
+              </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* Mobile Floating Action Button for Assistant */}
-      <button
-        onClick={() => router.push('/assistant')}
-        className="sm:hidden fixed bottom-6 right-6 z-50 p-4 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 border border-blue-500 active:scale-95 transition-transform flex items-center justify-center"
-        aria-label="Open AI Assistant"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+      {/* Persistent Bottom Tab Bar (Mobile) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#020817] border-t border-white/[0.06] flex items-center px-4">
+        <button
+          onClick={() => { setActiveTab('learn'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          className={`flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 transition-colors ${
+            activeTab === 'learn' ? 'text-blue-400' : 'text-slate-600'
+          }`}
+        >
+          <BookOpen className="w-5 h-5" />
+          <TranslatedText text="Learn" />
+        </button>
+        <button
+          onClick={() => router.push('/quiz')}
+          className={`flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 transition-colors ${
+            activeTab === 'quiz' ? 'text-blue-400' : 'text-slate-600'
+          }`}
+        >
+          <Trophy className="w-5 h-5" />
+          <TranslatedText text="Quiz" />
+        </button>
+        <button
+          onClick={() => router.push('/polling-stations')}
+          className="flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 transition-colors text-slate-600"
+        >
+          <MapPin className="w-5 h-5" />
+          <TranslatedText text="Stations" />
+        </button>
+        <button
+          onClick={() => router.push('/assistant')}
+          className={`flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold gap-1 transition-colors ${
+            activeTab === 'assistant' ? 'text-blue-400' : 'text-slate-600'
+          }`}
+        >
+          <MessageCircle className="w-5 h-5" />
+          <TranslatedText text="Assistant" />
+        </button>
+      </nav>
     </div>
   );
 }

@@ -3,24 +3,31 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Allow anonymous users to read/write their own session data
     match /sessions/{sessionId} {
-      allow read, write: if request.auth != null && (request.auth.uid == sessionId || request.resource.data.sessionId == sessionId);
+      allow read, write: if request.auth != null
+                         && request.auth.uid == sessionId;
       
       // Nested collections for history and progress
       match /{allPaths=**} {
-        allow read, write: if request.auth != null;
+        allow read, write: if request.auth != null
+                           && request.auth.uid == sessionId;
       }
     }
     
-    // Allow reading public caches
-    match /cache/{document=**} {
+    // Rate limits - allow update but prevent tampering with counts from other sessions
+    match /rate_limits/{sessionId} {
+      allow read: if request.auth != null && request.auth.uid == sessionId;
+      allow write: if request.auth != null && request.auth.uid == sessionId;
+    }
+
+    // AI Content Caches
+    match /guides_cache/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    
-    // Rate limits - allow update but prevent tampering with counts from other sessions
-    match /rateLimits/{sessionId} {
-      allow read: if request.auth != null && request.auth.uid == sessionId;
-      allow write: if request.auth != null && request.auth.uid == sessionId;
+
+    match /quizzes_cache/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
     // Default deny

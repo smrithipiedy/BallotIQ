@@ -2,27 +2,40 @@
 
 /**
  * Hook for persisting and restoring user learning progress.
- * Uses localStorage for sessionId and Firestore for sync.
+ * Uses the Firebase anonymous auth UID as the session ID
+ * so Firestore rules can enforce ownership.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import type { KnowledgeLevel, SupportedLanguage, UserProgress } from '@/types';
 import { saveProgress, getProgress } from '@/lib/firebase/firestore';
-import { authReady } from '@/lib/firebase/client';
+import { authReady, getFirebaseAuth } from '@/lib/firebase/client';
 
 /** localStorage key for session ID */
 const SESSION_KEY = 'ballotiq_session_id';
 
 /**
- * Generates a simple UUID v4.
- * @returns Random UUID string
+ * Returns the Firebase anonymous auth UID, falling back to a stored UUID.
+ * The auth UID is preferred because Firestore rules enforce `auth.uid == sessionId`.
+ * @returns Session ID string
  */
-function generateSessionId(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+function getOrCreateSessionId(): string {
+  const auth = getFirebaseAuth();
+  if (auth.currentUser?.uid) {
+    // Persist so it survives before auth is ready on next page load
+    localStorage.setItem(SESSION_KEY, auth.currentUser.uid);
+    return auth.currentUser.uid;
+  }
+  const stored = localStorage.getItem(SESSION_KEY);
+  if (stored) return stored;
+  // Temporary fallback until auth resolves — will be overwritten
+  const temp = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+  localStorage.setItem(SESSION_KEY, temp);
+  return temp;
 }
 
 interface UseProgressReturn {
@@ -38,7 +51,8 @@ interface UseProgressReturn {
 }
 
 /**
- * Manages user learning progress with persistence.
+ * Manages user learning progress with Firestore persistence.
+ * Session ID is derived from the Firebase anonymous auth UID.
  * @param countryCode - Current country being studied
  * @param knowledgeLevel - User's knowledge level
  * @returns Progress state and mutation functions
@@ -47,17 +61,26 @@ export function useProgress(
   countryCode: string,
   knowledgeLevel: KnowledgeLevel
 ): UseProgressReturn {
-  const [sessionId] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) return stored;
-      const newId = generateSessionId();
-      localStorage.setItem(SESSION_KEY, newId);
-      return newId;
-    }
-    return '';
+  const [sessionId, setSessionId] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return getOrCreateSessionId();
   });
   const [progress, setProgress] = useState<UserProgress | null>(null);
+
+  // Once auth is ready, upgrade to the real Firebase UID
+  useEffect(() => {
+    let cancelled = false;
+    authReady.then(() => {
+      if (cancelled) return;
+      const auth = getFirebaseAuth();
+      if (auth.currentUser?.uid) {
+        const uid = auth.currentUser.uid;
+        localStorage.setItem(SESSION_KEY, uid);
+        setSessionId(uid);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Restore progress on mount
   useEffect(() => {

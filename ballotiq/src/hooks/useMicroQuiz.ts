@@ -30,7 +30,11 @@ interface UseMicroQuizReturn {
 export function useMicroQuiz(
   step: ElectionStep | null,
   userContext: UserContext | null,
-  onResult?: (correct: boolean) => void
+  onResult?: (args: {
+    correct: boolean;
+    selectedAnswerText: string;
+    correctAnswerText: string;
+  }) => void,
 ): UseMicroQuizReturn {
   const [question, setQuestion] = useState<MicroQuizQuestion | null>(() => step?.microQuizQuestion ?? null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -88,7 +92,11 @@ export function useMicroQuiz(
     if (!correct) {
       setExplanation(question.hint);
     }
-    onResult?.(correct);
+    onResult?.({
+      correct,
+      selectedAnswerText: question.options[index] ?? '',
+      correctAnswerText: question.options[question.correctIndex] ?? '',
+    });
   }, [question, selectedAnswer, onResult]);
 
   const reset = useCallback(() => {

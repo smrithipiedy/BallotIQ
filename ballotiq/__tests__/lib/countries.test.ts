@@ -45,14 +45,23 @@ describe('getCountryByCode', () => {
 
   it('returns undefined for invalid code', () => {
     expect(getCountryByCode('XX')).toBeUndefined();
+    expect(getCountryByCode('')).toBeUndefined();
+    expect(getCountryByCode('IND')).toBeUndefined();
   });
 });
 
 describe('getAllCountryCodes', () => {
-  it('returns all 8 codes', () => {
+  it('returns exactly 8 unique codes', () => {
     const codes = getAllCountryCodes();
     expect(codes).toHaveLength(8);
-    expect(codes).toContain('IN');
-    expect(codes).toContain('US');
+    const unique = new Set(codes);
+    expect(unique.size).toBe(8);
+  });
+
+  it('contains all mandatory countries', () => {
+    const codes = getAllCountryCodes();
+    ['IN', 'US', 'GB', 'DE', 'FR', 'BR', 'AU', 'SA'].forEach(c => {
+      expect(codes).toContain(c);
+    });
   });
 });

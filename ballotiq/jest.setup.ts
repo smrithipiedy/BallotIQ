@@ -2,7 +2,9 @@ import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as any;
+// Node's `util` TextDecoder types can differ from the browser global in TS lib.
+// Cast via `globalThis.TextDecoder` to satisfy type-checking.
+global.TextDecoder = TextDecoder as unknown as typeof globalThis.TextDecoder;
 
 // Mock Firebase
 jest.mock('firebase/performance', () => ({

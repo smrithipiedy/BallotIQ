@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, CheckCircle2, Clock,
-  FileText, Lightbulb, AlertCircle, ExternalLink,
+  FileText, Lightbulb, ExternalLink,
 } from 'lucide-react';
 import type { ElectionStep, KnowledgeLevel } from '@/types';
 import TTSButton from '@/components/ui/TTSButton';
@@ -36,10 +36,12 @@ interface StepCardProps {
 /** Full-depth election step card with TTS, expandable sections, and confusion callout */
 export default function StepCard({
   step, isActive, isCompleted, knowledgeLevel,
-  userConfusion, isFallbackContent,
+  userConfusion: _userConfusion, isFallbackContent: _isFallbackContent,
   onComplete, onSpeak, adaptationActive, isSpeaking, currentSpokenText,
   electionBodyUrl, onInteraction,
 }: StepCardProps) {
+  void _userConfusion;
+  void _isFallbackContent;
   const [showRequirements, setShowRequirements] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
@@ -85,7 +87,7 @@ export default function StepCard({
           </div>
         </div>
         {step.timeline && (
-          <span className="flex items-center gap-1 px-2.5 py-1 bg-white/5 rounded-lg text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+          <span className="flex items-center gap-1 px-2.5 py-1 bg-white/5 rounded-lg text-xs text-gray-400 whitespace-normal leading-tight max-w-[140px] md:max-w-none flex-shrink-0">
             <Clock className="w-3 h-3" aria-hidden="true" />
             <TranslatedText text={step.timeline} />
           </span>
