@@ -28,38 +28,49 @@ import { useMemo } from 'react';
 export default function QuizPage() {
   const router = useRouter();
   const [userContext] = useState<UserContext | null>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('ballotiq_context');
-      return stored ? JSON.parse(stored) as UserContext : null;
-    }
-    return null;
+    if (typeof window === 'undefined') return null;
+    const stored = sessionStorage.getItem('ballotiq_context');
+    return stored ? (JSON.parse(stored) as UserContext) : null;
   });
+
+  const [mounted, setMounted] = useState(false);
+  const [insight, setInsight] = useState('');
+  const [showWarning, setShowWarning] = useState(false);
+  const [proceedAnyway, setProceedAnyway] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { progress, completedSteps: completedStepIds } = useProgress(
     userContext?.countryCode || 'IN',
     userContext?.knowledgeLevel || 'beginner'
   );
 
-  const [insight, setInsight] = useState('');
-  const [showWarning, setShowWarning] = useState(false);
-  const [proceedAnyway, setProceedAnyway] = useState(false);
-  const [totalStepsCount, setTotalStepsCount] = useState(0);
-
-  // Derive full step objects from IDs for useQuiz
   const completedSteps = useMemo(() => {
     if (!userContext || !progress) return [];
     const guide = getFallbackGuide(userContext.countryCode, userContext.knowledgeLevel);
     if (!guide) return [];
-    setTotalStepsCount(guide.length);
-    return guide.filter(step => completedStepIds.includes(step.id));
+    
+    // Fallback to full guide if user hasn't completed any steps yet, 
+    // ensuring the quiz page is never empty and loads instantly.
+    const filtered = guide.filter(step => completedStepIds.includes(step.id));
+    return filtered.length > 0 ? filtered : guide;
   }, [userContext, progress, completedStepIds]);
 
+
   useEffect(() => {
-    if (progress && totalStepsCount > 0 && !proceedAnyway) {
-      if (completedStepIds.length < totalStepsCount) {
-        setShowWarning(true);
-      }
+    if (!progress || !userContext || proceedAnyway) return;
+
+    const guide = getFallbackGuide(userContext.countryCode, userContext.knowledgeLevel);
+    if (!guide) return;
+
+    const uncompleted = guide.filter(s => !completedStepIds.includes(s.id));
+    
+    if (uncompleted.length > 0) {
+      setTimeout(() => setShowWarning(true), 0);
     }
-  }, [progress, totalStepsCount, completedStepIds, proceedAnyway]);
+  }, [progress, userContext, completedStepIds, proceedAnyway]);
 
   const {
     questions, currentQuestion, currentIndex, results,
@@ -76,7 +87,13 @@ export default function QuizPage() {
     }
   }, [phase, userContext, results, score, questions]);
 
-  if (!userContext) return null;
+  if (!mounted || !userContext) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-8 flex flex-col items-center justify-center">
+        <LoadingSkeleton lines={10} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
@@ -100,7 +117,7 @@ export default function QuizPage() {
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-gray-400">
               <Zap className="w-3 h-3" />
-              <TranslatedText text="In Progress" />
+              <TranslatedText text={completedStepIds.length >= (getFallbackGuide(userContext.countryCode, userContext.knowledgeLevel)?.length ?? 0) ? "Certified" : "In Progress"} />
             </div>
             <button
               onClick={() => router.push('/polling-stations')}

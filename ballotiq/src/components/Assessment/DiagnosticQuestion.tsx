@@ -29,6 +29,25 @@ export default function DiagnosticQuestion({
 }: DiagnosticQuestionProps) {
   const [textInput, setTextInput] = useState('');
   const [selectedScale, setSelectedScale] = useState<number | null>(null);
+  const { language } = useTranslation();
+  
+  const maxChars = 200;
+
+  const sttLanguage = useMemo(
+    () => getLanguageInfo(language)?.googleTTSCode ?? 'en-US',
+    [language]
+  );
+
+  const appendTranscript = useCallback((spokenText: string) => {
+    const cleanSpoken = spokenText.trim();
+    if (!cleanSpoken) return;
+    setTextInput((prev) => {
+      const prefix = prev.trim().length > 0 ? `${prev.trim()} ` : '';
+      return `${prefix}${cleanSpoken}`.slice(0, maxChars);
+    });
+  }, []);
+
+  const { isListening, error, startListening, stopListening } = useSTT(sttLanguage, appendTranscript);
 
   if (questionNumber === 1) {
     return (
@@ -118,21 +137,6 @@ export default function DiagnosticQuestion({
 
   // Question 3
   const charCount = textInput.length;
-  const maxChars = 200;
-  const { language } = useTranslation();
-  const sttLanguage = useMemo(
-    () => getLanguageInfo(language)?.googleTTSCode ?? 'en-US',
-    [language]
-  );
-  const appendTranscript = useCallback((spokenText: string) => {
-    const cleanSpoken = spokenText.trim();
-    if (!cleanSpoken) return;
-    setTextInput((prev) => {
-      const prefix = prev.trim().length > 0 ? `${prev.trim()} ` : '';
-      return `${prefix}${cleanSpoken}`.slice(0, maxChars);
-    });
-  }, []);
-  const { isListening, error, startListening, stopListening } = useSTT(sttLanguage, appendTranscript);
 
   return (
     <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">

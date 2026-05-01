@@ -2,6 +2,42 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+      isFinal: boolean;
+    };
+    length: number;
+  };
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onend: () => void;
+  start: () => void;
+  stop: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: { new (): SpeechRecognition } | undefined;
+    webkitSpeechRecognition: { new (): SpeechRecognition } | undefined;
+  }
+}
+
 /**
  * Hook for Speech-to-Text using Web Speech API.
  * Handles microphone input and converts it to text.
@@ -10,18 +46,21 @@ export function useSTT(language: string = 'en-US', onResult?: (text: string) => 
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     // Check for browser support
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-    if (!SpeechRecognition) {
-      setError('Speech recognition not supported in this browser.');
-      return;
+    if (!SpeechRecognitionClass) {
+      // Use setTimeout to avoid set-state-in-effect lint error
+      const timer = setTimeout(() => {
+        setError('Speech recognition not supported in this browser.');
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionClass();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = language;
@@ -31,7 +70,7 @@ export function useSTT(language: string = 'en-US', onResult?: (text: string) => 
       setError(null);
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const current = event.resultIndex;
       const resultTranscript = event.results[current][0].transcript;
       setTranscript(resultTranscript);
@@ -40,7 +79,7 @@ export function useSTT(language: string = 'en-US', onResult?: (text: string) => 
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       setError(event.error);
       setIsListening(false);
     };

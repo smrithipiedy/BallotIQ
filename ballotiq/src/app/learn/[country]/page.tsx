@@ -93,7 +93,6 @@ export default function LearnPage() {
     currentStepIndex,
     consecutiveErrors,
     completedStepsCount: completedSteps.length,
-    totalStepsCount: steps.length,
     onSuggestSimplification: () => {
       confirmAdaptation();
     }
@@ -156,7 +155,7 @@ export default function LearnPage() {
         <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/choose-path/')}
+              onClick={() => router.push('/choose-path')}
               className="p-2.5 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group shadow-sm"
               aria-label="Back to selection"
             >

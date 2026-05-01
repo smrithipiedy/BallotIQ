@@ -23,6 +23,7 @@ export default function PollingStationFinder({ country, fullScreen = false }: Po
   const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [pollingStations, setPollingStations] = useState<google.maps.places.Place[]>([]);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -100,6 +101,7 @@ export default function PollingStationFinder({ country, fullScreen = false }: Po
         const { places } = await Place.searchNearby(request);
 
         if (places && places.length > 0) {
+          setPollingStations(places);
           places.forEach((place) => {
             if (place.location) {
               const officePin = new PinElement({
@@ -164,6 +166,37 @@ export default function PollingStationFinder({ country, fullScreen = false }: Po
           aria-label="Map showing nearby polling stations"
           role="application"
         />
+
+        {/* Nearby Booths Side List - Top Left */}
+        {mapLoaded && pollingStations.length > 0 && (
+          <div className="absolute top-3 left-3 sm:top-5 sm:left-5 z-10 w-64 max-h-[40%] bg-gray-950/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 flex flex-col gap-3 overflow-hidden animate-in fade-in slide-in-from-left duration-500">
+            <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <TranslatedText text="Find your polling booth:" />
+            </h3>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+              {pollingStations.map((station) => (
+                <button
+                  key={station.id}
+                  onClick={() => {
+                    if (mapInstanceRef.current && station.location) {
+                      mapInstanceRef.current.panTo(station.location);
+                      mapInstanceRef.current.setZoom(16);
+                    }
+                  }}
+                  className="w-full text-left p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group"
+                >
+                  <p className="text-[11px] font-bold text-gray-200 group-hover:text-white transition-colors truncate">
+                    {station.displayName}
+                  </p>
+                  <p className="text-[9px] text-gray-500 truncate mt-0.5">
+                    {station.formattedAddress}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Recenter control */}
         <button

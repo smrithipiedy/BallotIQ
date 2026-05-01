@@ -20,24 +20,21 @@ import type { Country } from '@/types';
 /** Three-step diagnostic assessment page */
 export default function AssessPage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [country, setCountry] = useState<Country | null>(null);
+  const [country] = useState<Country | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = sessionStorage.getItem('ballotiq_country');
+    return stored ? (JSON.parse(stored) as Country) : null;
+  });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-    const stored = sessionStorage.getItem('ballotiq_country');
-    if (stored) {
-       
-      setCountry(JSON.parse(stored) as Country);
-    } else {
+    if (!country && typeof window !== 'undefined') {
       router.push('/');
     }
-  }, [router]);
+  }, [country, router]);
 
   const { sessionId } = useProgress('', 'beginner');
 
-  if (!mounted || !country) return (
+  if (!country) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
     </div>
@@ -64,7 +61,7 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
       sessionStorage.setItem('ballotiq_context', JSON.stringify(userContext));
       resetProgress(); // CLEAR OLD DATA
       const timer = setTimeout(() => {
-        router.push(`/learn/${country.code.toLowerCase()}/`);
+        router.push(`/learn/${country.code.toLowerCase()}`);
       }, 1500);
       return () => clearTimeout(timer);
     }

@@ -103,7 +103,7 @@ async function callGemini(
               { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
               { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
               { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-            ] as any,
+            ] as any, // Cast required for library compatibility
           });
           const response = await result.response;
           const text = response.text();
@@ -141,8 +141,8 @@ async function callGemini(
           break; // Move to next model
         }
       }
-    } catch (err: any) {
-      const msg = err?.message || 'Unknown error';
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message || 'Unknown error';
       logger.error(`Gemini call failed for model ${modelId}: ${msg}`, err);
       // Surface quota issues to console for debugging
       if (msg.includes('quota') || msg.includes('429')) {
@@ -301,22 +301,23 @@ export async function reExplainConcept(
 /**
  * Generates personalized final quiz from the steps this user actually completed.
  */
-export async function generatePersonalizedQuiz(
-  completedSteps: ElectionStep[],
-  knowledgeLevel: KnowledgeLevel,
-  countryCode: string,
-  sessionId?: string,
-): Promise<QuizQuestion[]> {
-  const fallback: QuizQuestion[] = [];
+/**
+ * Builds a high-quality fallback quiz locally from steps data.
+ * Used for instant loading (<1s) and when AI is unavailable.
+ */
+export function generateLocalFallbackQuiz(
+  steps: ElectionStep[],
+  knowledgeLevel: KnowledgeLevel
+): QuizQuestion[] {
+  const questions: QuizQuestion[] = [];
+  if (steps.length === 0) return [];
 
-  // Build a 5-question fallback by extracting DIFFERENT facts from each step
   for (let i = 0; i < 5; i++) {
-    const stepIndex = i % completedSteps.length;
-    const s = completedSteps[stepIndex];
+    const stepIndex = i % steps.length;
+    const s = steps[stepIndex];
     if (!s) continue;
 
-    // Cycle through different "types" of questions for the same step to avoid repetition
-    const type = i < completedSteps.length ? 'concept' : i < completedSteps.length * 2 ? 'requirement' : 'tip';
+    const type = i < steps.length ? 'concept' : i < steps.length * 2 ? 'requirement' : 'tip';
 
     let q = `Regarding ${s.title}, what is most important?`;
     let opts = s.microQuizQuestion?.options ?? ['Correct', 'Incorrect 1', 'Incorrect 2', 'Incorrect 3'];
@@ -334,8 +335,8 @@ export async function generatePersonalizedQuiz(
       cIdx = 0;
     }
 
-    fallback.push({
-      id: `quiz_q${i + 1}`,
+    questions.push({
+      id: `fallback_q${i + 1}_${s.id}`,
       question: q,
       options: opts,
       correctIndex: cIdx,
@@ -347,6 +348,17 @@ export async function generatePersonalizedQuiz(
       relatedStepId: s.id,
     });
   }
+  return questions;
+}
+
+export async function generatePersonalizedQuiz(
+  completedSteps: ElectionStep[],
+  knowledgeLevel: KnowledgeLevel,
+  countryCode: string,
+  sessionId?: string,
+): Promise<QuizQuestion[]> {
+  const fallback = generateLocalFallbackQuiz(completedSteps, knowledgeLevel);
+  if (completedSteps.length === 0) return [];
 
   const prompt = buildPersonalizedQuizPrompt(completedSteps, knowledgeLevel, countryCode);
   const raw = await callGeminiQuiz(prompt, sessionId ?? 'finalquiz');

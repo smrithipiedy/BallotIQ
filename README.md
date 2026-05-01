@@ -22,7 +22,7 @@ The entire platform — every label, button, content block, and AI response — 
 
 | Service | What it does in BallotIQ |
 |---|---|
-| **Gemini 2.1 Flash / 2.1 Flash Lite** | Assessment analysis, personalized guide generation, micro-quizzes, re-explanations, final quiz, conversational assistant, performance insights |
+| **Gemini 2.5 and 3.1 Flash &/ Flash Lite Models** | Assessment analysis, personalized guide generation, micro-quizzes, re-explanations, final quiz, conversational assistant, performance insights |
 | **Firebase Firestore** | Session persistence, 24h guide caching, rate limit tracking, chat history |
 | **Firebase Auth** | Anonymous sessions — required for all Firestore operations |
 | **Firebase Analytics** | 7 custom learning events tracking the full user journey |

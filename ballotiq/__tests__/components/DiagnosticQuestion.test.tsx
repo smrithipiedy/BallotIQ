@@ -56,7 +56,7 @@ describe('DiagnosticQuestion', () => {
     render(<DiagnosticQuestion questionNumber={3} onAnswer={onAnswer} isLoading={false} />);
     const textarea = screen.getByPlaceholderText(/e.g. How does vote counting work/i);
     fireEvent.change(textarea, { target: { value: '<script>alert(1)</script>Help' } });
-    fireEvent.click(screen.getByText(/Continue/i));
+    fireEvent.click(screen.getByRole('button', { name: /Submit your answer/i }));
     expect(onAnswer).toHaveBeenCalledWith('&lt;script&gt;alert(1)&lt;/script&gt;Help');
   });
 

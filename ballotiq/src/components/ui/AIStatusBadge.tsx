@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Bot, Zap, CloudOff, Database } from 'lucide-react';
+import { Bot, Zap, Database } from 'lucide-react';
 import TranslatedText from './TranslatedText';
 
 export type AIStatusMode = 'live' | 'cached' | 'error';

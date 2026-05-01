@@ -26,7 +26,7 @@ export default function HomePage() {
   const handleCountrySelect = (country: Country) => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ballotiq_country', JSON.stringify(country));
-      router.push('/choose-path/');
+      router.push('/choose-path');
     }
   };
 

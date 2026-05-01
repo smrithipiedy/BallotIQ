@@ -31,7 +31,7 @@ export default function ChoosePathPage() {
    * Navigates the user to the diagnostic assessment flow.
    */
   const startGuidedPath = () => {
-    router.push('/assess/');
+    router.push('/assess');
   };
 
   /**

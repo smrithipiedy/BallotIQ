@@ -25,24 +25,13 @@ import BottomNav from '@/components/ui/BottomNav';
 /** Full-page AI assistant with context-aware responses */
 export default function AssistantPage() {
   const router = useRouter();
-  const [userContext, setUserContext] = useState<UserContext | null>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  const completedSteps = useMemo<ElectionStep[]>(() => {
-    if (!userContext) return [];
-    return getFallbackGuide(userContext.countryCode, userContext.knowledgeLevel) ?? [];
-  }, [userContext]);
-
-  useEffect(() => {
+  const [userContext] = useState<UserContext | null>(() => {
+    if (typeof window === 'undefined') return null;
     const stored = sessionStorage.getItem('ballotiq_context');
-    if (!stored) {
-      router.push('/');
-      return;
-    }
-
+    if (!stored) return null;
+    
     const ctx = JSON.parse(stored) as UserContext;
-
-    // Hydrate missing metadata for legacy sessions
+    // Hydrate missing metadata if needed
     if (!ctx.electionBody || !ctx.electionBodyUrl) {
       const countryData = getCountryByCode(ctx.countryCode);
       if (countryData) {
@@ -51,10 +40,23 @@ export default function AssistantPage() {
         sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
       }
     }
+    return ctx;
+  });
 
-    setUserContext(ctx);
-    setIsReady(true);
-  }, [router]);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    if (!userContext) {
+      router.push('/');
+    } else {
+      setIsReady(true);
+    }
+  }, [userContext, router]);
+
+  const completedSteps = useMemo<ElectionStep[]>(() => {
+    if (!userContext) return [];
+    return getFallbackGuide(userContext.countryCode, userContext.knowledgeLevel) ?? [];
+  }, [userContext]);
 
   const { isSpeaking, currentText, toggle: toggleTTS } = useTTS(
     userContext?.sessionId ?? ''

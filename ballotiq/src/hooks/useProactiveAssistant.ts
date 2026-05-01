@@ -33,7 +33,6 @@ interface UseProactiveAssistantProps {
   currentStepIndex: number;
   consecutiveErrors: number;
   completedStepsCount: number;
-  totalStepsCount: number;
   onSuggestSimplification: () => void;
 }
 
@@ -42,19 +41,27 @@ export function useProactiveAssistant({
   currentStepIndex,
   consecutiveErrors,
   completedStepsCount,
-  totalStepsCount,
   onSuggestSimplification,
 }: UseProactiveAssistantProps) {
   const [suggestion, setSuggestion] = useState<ProactiveSuggestion | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
   const stepStartTime = useRef<number | null>(null);
-  const lastInteractionTime = useRef<number>(Date.now());
+  const lastInteractionTime = useRef<number>(0);
   const rapidCompletionCount = useRef<number>(0);
 
+  useEffect(() => {
+    lastInteractionTime.current = Date.now();
+  }, []);
+
   // Track when user arrived at current step
+  const dismiss = useCallback(() => {
+    setIsDismissed(true);
+    setSuggestion(null);
+  }, []);
+
   useEffect(() => {
     stepStartTime.current = Date.now();
-    setIsDismissed(false);
+    setTimeout(() => setIsDismissed(false), 0);
   }, [currentStepIndex]);
 
   // Track last interaction
@@ -90,18 +97,20 @@ export function useProactiveAssistant({
   // Check: consecutive errors
   useEffect(() => {
     if (consecutiveErrors >= 2 && !isDismissed && !suggestion) {
-      setSuggestion({
-        trigger: 'consecutive_errors',
-        message: "Getting a few wrong is completely normal! Want me to switch to simpler explanations?",
-        actionLabel: 'Simplify for me',
-        onAction: () => {
-          onSuggestSimplification();
-          dismiss();
-        },
-      });
+      setTimeout(() => {
+        setSuggestion({
+          trigger: 'consecutive_errors',
+          message: "Getting a few wrong is completely normal! Want me to switch to simpler explanations?",
+          actionLabel: 'Simplify for me',
+          onAction: () => {
+            onSuggestSimplification();
+            dismiss();
+          },
+        });
+      }, 0);
       announce('BallotIQ suggests switching to simpler explanations.');
     }
-  }, [consecutiveErrors, isDismissed, onSuggestSimplification, suggestion]);
+  }, [consecutiveErrors, isDismissed, onSuggestSimplification, suggestion, dismiss]);
 
   // Check: rapid completion (completing steps in under 30 seconds)
   useEffect(() => {
@@ -110,15 +119,17 @@ export function useProactiveAssistant({
     if (secondsOnStep < 30 && completedStepsCount > 0) {
       rapidCompletionCount.current += 1;
       if (rapidCompletionCount.current >= 3 && !isDismissed && !suggestion) {
-        setSuggestion({
-          trigger: 'rapid_completion',
-          message: "You're moving quickly! Make sure to read each step carefully — the quiz will test these concepts.",
-          actionLabel: 'Got it, I will',
-          onAction: dismiss,
-        });
+        setTimeout(() => {
+          setSuggestion({
+            trigger: 'rapid_completion',
+            message: "You're moving quickly! Make sure to read each step carefully — the quiz will test these concepts.",
+            actionLabel: 'Got it, I will',
+            onAction: dismiss,
+          });
+        }, 0);
       }
     }
-  }, [completedStepsCount, isDismissed, suggestion]);
+  }, [completedStepsCount, isDismissed, suggestion, dismiss]);
 
   // Check: idle too long (5 minutes no interaction)
   useEffect(() => {
@@ -136,12 +147,7 @@ export function useProactiveAssistant({
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [isDismissed, suggestion]);
-
-  const dismiss = useCallback(() => {
-    setIsDismissed(true);
-    setSuggestion(null);
-  }, []);
+  }, [isDismissed, suggestion, dismiss]);
 
   return { suggestion, dismiss, recordInteraction };
 }

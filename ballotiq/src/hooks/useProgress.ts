@@ -47,17 +47,19 @@ export function useProgress(
   countryCode: string,
   knowledgeLevel: KnowledgeLevel
 ): UseProgressReturn {
-  const [sessionId] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) return stored;
+  const [sessionId, setSessionId] = useState<string>('');
+  const [progress, setProgress] = useState<UserProgress | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (stored) {
+      setSessionId(stored);
+    } else {
       const newId = generateSessionId();
       localStorage.setItem(SESSION_KEY, newId);
-      return newId;
+      setSessionId(newId);
     }
-    return '';
-  });
-  const [progress, setProgress] = useState<UserProgress | null>(null);
+  }, []);
 
   // Restore progress on mount
   useEffect(() => {

@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ElectionStep, QuizPhase, QuizQuestion, QuizResult, UserContext } from '@/types';
-import { generatePersonalizedQuiz } from '@/lib/gemini/client';
+import { generatePersonalizedQuiz, generateLocalFallbackQuiz } from '@/lib/gemini/client';
 
 interface UseQuizReturn {
   questions: QuizQuestion[];
@@ -40,11 +40,28 @@ export function useQuiz(
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!userContext || completedSteps.length === 0 || fetchedRef.current) return;
+    if (!userContext || fetchedRef.current) return;
+    
+    // 1. Instantly provide fallback questions for <2s load time
+    const localFallback = generateLocalFallbackQuiz(completedSteps, userContext.knowledgeLevel);
+    if (localFallback.length > 0) {
+      setTimeout(() => {
+        setQuestions(localFallback);
+        setLoading(false);
+        setPhase('active');
+      }, 0);
+    }
+
+    if (completedSteps.length === 0) {
+      setLoading(false);
+      setPhase('active');
+      return;
+    }
+
     fetchedRef.current = true;
 
     async function loadQuiz() {
-      setLoading(true);
+      // Don't set loading(true) again if we already have fallback questions
       try {
         const qs = await generatePersonalizedQuiz(
           completedSteps,
@@ -52,18 +69,19 @@ export function useQuiz(
           userContext!.countryCode,
           userContext!.sessionId
         );
-        setQuestions(qs);
-        startTimeRef.current = Date.now();
-        setPhase('active');
-      } catch {
-        startTimeRef.current = Date.now();
-        setPhase('active');
+        
+        // Only swap if user hasn't started yet to avoid jarring UX
+        setQuestions((prev) => (currentIndex === 0 && results.length === 0 ? qs : prev));
+        startTimeRef.current = startTimeRef.current || Date.now();
+      } catch (err) {
+        console.error('Quiz AI fetch failed, using fallback', err);
       } finally {
         setLoading(false);
+        setPhase('active');
       }
     }
     loadQuiz();
-  }, [completedSteps, userContext]);
+  }, [completedSteps, userContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const answerQuestion = useCallback((selectedIndex: number) => {
     if (!questions[currentIndex]) return;

@@ -135,7 +135,12 @@ export default function ChatWindow({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-transparent to-[#030712]/40">
+        <div 
+          className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-transparent to-[#030712]/40"
+          role="log"
+          aria-live="polite"
+          aria-label="Conversation"
+        >
           {messages.length === 0 && (
             <div className="space-y-6 animate-in fade-in duration-1000">
               {userContext.mainConfusion === 'Direct query' && (

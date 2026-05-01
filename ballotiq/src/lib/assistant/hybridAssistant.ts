@@ -35,8 +35,9 @@ export async function getAssistantResponse(
   const officialName = countryData?.electionBody || userContext.electionBody || (userContext.countryName + ' Election Body');
   const officialUrl = countryData?.electionBodyUrl || userContext.electionBodyUrl || `https://www.google.com/search?q=${encodeURIComponent(userContext.countryName + ' official election website')}`;
 
-  // 0. Fast scope guards for speed and consistency
-  const isOnTopic = isAllowedTopic(normalizedQuestion);
+  // 0. Contextual Scope Guard
+  // If there is history, we are more lenient with the topic filter to allow "continue", "why?", etc.
+  const isOnTopic = isAllowedTopic(normalizedQuestion, chatHistory.length > 0);
   if (!isOnTopic) {
     return {
       content: `I can only help with elections, voting, and civic politics. I am not built for unrelated topics. You can ask about voter registration, eligibility, election dates, polling stations, voting process, election rules, political systems, or how elections work in ${userContext.countryName}.`,
@@ -106,15 +107,37 @@ export async function getAssistantResponse(
   };
 }
 
-function isAllowedTopic(question: string): boolean {
+function isAllowedTopic(question: string, hasHistory: boolean): boolean {
+  // Common follow-up words that should be allowed if a conversation is already active
+  const followUpKeywords = [
+    'continue', 'more', 'elaborate', 'why', 'how', 'explain', 'tell me', 'next', 'back', 'previous',
+    'yes', 'no', 'sure', 'okay', 'thanks', 'thank you', 'please', 'details'
+  ];
+
   const civicKeywords = [
     'election', 'elections', 'vote', 'voting', 'voter', 'ballot', 'booth', 'poll', 'polling',
     'constituency', 'candidate', 'campaign', 'manifesto', 'democracy', 'parliament', 'assembly',
     'president', 'prime minister', 'senate', 'congress', 'governor', 'mayor', 'municipal',
     'registration', 'electoral roll', 'epic', 'evm', 'vvpat', 'commission', 'politic', 'policy',
-    'government', 'governance', 'public office', 'party', 'coalition', 'ideology', 'civic'
+    'government', 'governance', 'public office', 'party', 'coalition', 'ideology', 'civic',
+    'representative', 'legislature', 'judiciary', 'executive', 'constitution', 'amendment',
+    'right', 'duty', 'citizen', 'participation', 'polling station', 'counting', 'result'
   ];
-  return civicKeywords.some((k) => question.includes(k));
+
+  const onTopic = civicKeywords.some((k) => question.includes(k));
+  if (onTopic) return true;
+
+  // If already in a conversation, allow common follow-up words even if they lack civic keywords
+  if (hasHistory) {
+    const isFollowUp = followUpKeywords.some((k) => {
+      // Use word boundary to avoid partial matches like "back" in "background"
+      const regex = new RegExp(`\\b${k}\\b`, 'i');
+      return regex.test(question);
+    });
+    if (isFollowUp) return true;
+  }
+
+  return false;
 }
 
 function detectMentionedCountry(question: string): { code: string; name: string } | null {

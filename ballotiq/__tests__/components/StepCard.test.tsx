@@ -15,7 +15,7 @@ const mockStep: ElectionStep = {
   title: 'Test Step',
   description: 'Regular description',
   detailedExplanation: 'Detailed explanation for beginners',
-  simpleExplanation: 'Very simple explanation',
+  simpleExplanation: 'Very simple explanation that is long enough to be kept in the adaptive mode. It needs at least three sentences to pass the rich check so we are adding more text here to reach the one hundred and eighty character limit required by the logic. This should be enough now.',
   timeline: 'Anytime',
   requirements: ['ID Card'],
   tips: ['Bring water'],
@@ -76,7 +76,7 @@ describe('StepCard', () => {
         currentSpokenText={null}
       />
     );
-    expect(screen.getByText('Very simple explanation')).toBeInTheDocument();
+    expect(screen.getByText(/Very simple explanation/)).toBeInTheDocument();
   });
 
   it('shows detailedExplanation for beginner when adaptation is false', () => {
