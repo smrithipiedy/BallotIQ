@@ -83,6 +83,7 @@ export function useMicroQuiz(
     return () => { cancelled = true; };
   }, [step, userContext]);
 
+  /** Validates the user's choice and triggers feedback/re-explanation logic. */
   const submitAnswer = useCallback((index: number) => {
     if (!question || selectedAnswer !== null) return;
     setSelectedAnswer(index);
@@ -99,6 +100,7 @@ export function useMicroQuiz(
     });
   }, [question, selectedAnswer, onResult]);
 
+  /** Clears the current quiz state to allow for a retake or fresh question. */
   const reset = useCallback(() => {
     setSelectedAnswer(null);
     setIsCorrect(null);

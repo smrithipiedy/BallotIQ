@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { MapPin } from 'lucide-react';
+import Image from 'next/image';
 import { COUNTRIES } from '@/lib/constants/countries';
 import type { Country } from '@/types';
 
@@ -48,9 +49,12 @@ export default function CountrySelector({ onSelect, className = '' }: CountrySel
             className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 text-left"
             aria-label={`Select ${country.name}`}
           >
-            <img 
+            <Image 
               src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`} 
               alt="" 
+              width={32}
+              height={24}
+              unoptimized
               className="w-8 h-6 object-cover rounded-sm shadow-sm"
             />
             <div>

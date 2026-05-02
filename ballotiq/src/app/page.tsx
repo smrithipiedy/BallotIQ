@@ -6,18 +6,21 @@
  */
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowRight, Brain, Globe, Languages, Accessibility, LayoutGrid, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin } from 'lucide-react';
 import TranslatedText from '@/components/ui/TranslatedText';
 import type { Country } from '@/types';
 import Image from 'next/image';
-import PollingStationFinder from '@/components/Location/PollingStationFinder';
+const PollingStationFinder = dynamic(
+  () => import('@/components/Location/PollingStationFinder'),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" /> }
+);
 import { getCountryByCode } from '@/lib/constants/countries';
-
 const LanguageSelector = dynamic(() => import('@/components/ui/LanguageSelector'), { ssr: false });
 const CountrySelector = dynamic(() => import('@/components/Location/CountrySelector'), { ssr: false });
-
+import FeatureGrid from '@/components/Home/FeatureGrid';
+import StatsRow from '@/components/Home/StatsRow';
+import HeroVisual from '@/components/Home/HeroVisual';
 /** BallotIQ landing page with hero, features, and quick start */
 export default function HomePage() {
   const router = useRouter();
@@ -30,41 +33,9 @@ export default function HomePage() {
     }
   };
 
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
-
-  useEffect(() => {
-    let animationId: number;
-    let lastTime = performance.now();
-    let exactScroll = carouselRef.current ? carouselRef.current.scrollLeft : 0;
-
-    const scroll = (time: number) => {
-      if (carouselRef.current) {
-        if (!isPaused) {
-          const deltaTime = time - lastTime;
-          const speed = window.innerWidth < 640 ? 0.052 : 0.04; 
-          
-          exactScroll += speed * deltaTime;
-          
-          if (exactScroll >= carouselRef.current.scrollWidth / 2) {
-            exactScroll -= carouselRef.current.scrollWidth / 2;
-          }
-          
-          carouselRef.current.scrollLeft = exactScroll;
-        } else {
-          exactScroll = carouselRef.current.scrollLeft;
-        }
-      }
-      lastTime = time;
-      animationId = requestAnimationFrame(scroll);
-    };
-
-    animationId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationId);
-  }, [isPaused]);
-
   return (
     <div className="bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">Skip to main content</a>
       <div className="min-h-screen flex flex-col">
         {/* Navigation */}
         <nav className="relative z-20 flex-shrink-0 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto w-full">
@@ -78,7 +49,7 @@ export default function HomePage() {
         </nav>
 
         {/* Hero Section */}
-        <section className="relative z-10 max-w-7xl mx-auto px-6 w-full flex-1 flex items-center justify-center py-8 sm:py-10 md:py-8 lg:py-6">
+        <section id="main-content" tabIndex={-1} className="relative z-10 max-w-7xl mx-auto px-6 w-full flex-1 flex items-center justify-center py-8 sm:py-10 md:py-8 lg:py-6 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-start md:items-center w-full">
             {/* Left Content */}
             <div className="space-y-6 sm:space-y-8 animate-in slide-in-from-left-8 duration-1000">
@@ -115,114 +86,12 @@ export default function HomePage() {
             </div>
 
             {/* Right Visual Element */}
-            <div className="relative w-full h-[300px] sm:h-[350px] md:h-[380px] lg:h-[400px] animate-in slide-in-from-right-8 duration-1000">
-            {/* Adaptive Learning Card */}
-            <div className="absolute top-0 sm:-top-4 right-0 sm:-right-6 w-[188px] sm:w-[280px] p-3 sm:p-5 rounded-2xl sm:rounded-[2rem] bg-[#0A0A1F] border border-white/10 shadow-xl sm:shadow-2xl rotate-2 sm:rotate-3 hover:rotate-0 transition-all duration-500 z-20">
-              <div className="flex items-center gap-2.5 sm:gap-4 mb-3 sm:mb-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-500 flex items-center justify-center flex-shrink-0">
-                  <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-white font-bold text-xs sm:text-sm"><TranslatedText text="Adaptive Path" /></h4>
-                  <p className="text-blue-400 text-[9px] sm:text-[10px] font-medium tracking-widest uppercase"><TranslatedText text="Level: Beginner" /></p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full w-[40%] bg-blue-500 rounded-full animate-pulse" />
-                </div>
-                <div className="flex justify-between text-[9px] sm:text-[10px] text-gray-500 font-medium">
-                  <span>2/5 <TranslatedText text="Steps" /></span>
-                  <span>40% <TranslatedText text="Knowledge" /></span>
-                </div>
-              </div>
-            </div>
-
-            {/* AI Conversation Component - NEW */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] sm:w-[320px] p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.03] backdrop-blur-3xl border border-white/10 shadow-xl sm:shadow-2xl z-10 flex flex-col gap-3 sm:gap-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2 sm:pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-widest"><TranslatedText text="BallotIQ Assistant" /></span>
-                </div>
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] p-2 sm:p-3 rounded-xl sm:rounded-2xl rounded-tl-sm bg-white/5 border border-white/5 text-[8px] sm:text-[10px] text-gray-300 leading-relaxed">
-                    <TranslatedText text="How do I register to vote in France?" />
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] p-2 sm:p-3 rounded-xl sm:rounded-2xl rounded-tr-sm bg-blue-600 text-[8px] sm:text-[10px] text-white leading-relaxed shadow-lg shadow-blue-500/20">
-                    <TranslatedText text="You can register online via service-public.fr or at your local town hall (mairie)..." />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-1 sm:mt-2 h-8 sm:h-10 w-full bg-white/5 rounded-lg sm:rounded-xl border border-white/5 flex items-center px-3 sm:px-4 justify-between">
-                <div className="h-1 sm:h-1.5 w-16 sm:w-24 bg-gray-600 rounded-full" />
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg bg-white/10 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                </div>
-              </div>
-            </div>
-
-            {/* AI Assistant Bubble (Small Accent) */}
-            <div className="absolute bottom-2 sm:bottom-4 left-0 w-[180px] sm:w-[240px] p-4 sm:p-5 rounded-xl sm:rounded-[2rem] bg-indigo-600 border border-indigo-400/30 shadow-lg sm:shadow-2xl -rotate-6 hover:rotate-0 transition-all duration-500 z-30">
-              <div className="flex gap-2 sm:gap-3 items-start">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs">🤖</span>
-                </div>
-                <p className="text-white text-[8px] sm:text-[10px] leading-relaxed font-medium">
-                  <TranslatedText text="I've translated this guide into French for you." />
-                </p>
-              </div>
-            </div>
-
-            {/* Background Decorative Circles */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-48 sm:h-48 bg-blue-500/20 blur-[80px] sm:blur-[100px] rounded-full z-0" />
-            
-            {/* Grid Line Visual */}
-            <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] rounded-xl sm:rounded-[2.5rem] border border-white/5" />
-            </div>
+            <HeroVisual />
           </div>
         </section>
       </div>
 
-      {/* Feature Infinite Carousel */}
-      <section className="relative z-10 py-16 overflow-hidden bg-white/[0.01] border-y border-white/5">
-        <div 
-          ref={carouselRef}
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onTouchStart={() => setIsPaused(true)}
-          onTouchEnd={() => setIsPaused(false)}
-          className="flex whitespace-nowrap overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing"
-        >
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex gap-4 px-2 flex-shrink-0">
-              {[
-                { icon: LayoutGrid, title: 'Dual Modes', desc: 'Structured lessons or direct AI conversation', color: 'bg-indigo-500' },
-                { icon: Brain, title: 'Adaptive AI', desc: 'Content that grows with your knowledge level', color: 'bg-purple-500' },
-                { icon: Globe, title: 'Regional Specific', desc: "Deep guides for your country's unique rules", color: 'bg-blue-500' },
-                { icon: Languages, title: 'Multi-Language', desc: 'Native translations for 8 global languages', color: 'bg-emerald-500' },
-                { icon: Accessibility, title: 'Inclusive', desc: 'Screen reader and keyboard accessibility', color: 'bg-amber-500' },
-              ].map(({ icon: Icon, title, desc, color }) => (
-                <div key={title} className="inline-flex flex-col w-[220px] sm:w-[280px] aspect-square sm:aspect-auto justify-center sm:justify-start p-5 sm:p-6 rounded-[2rem] sm:rounded-3xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300 mx-2 flex-shrink-0">
-                  <div className={`w-10 h-10 rounded-2xl ${color} flex items-center justify-center mb-4 shadow-lg shadow-black/20`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-base font-bold text-white mb-2"><TranslatedText text={title} /></h3>
-                  <p className="text-gray-500 leading-relaxed text-xs whitespace-normal"><TranslatedText text={desc} /></p>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
+      <FeatureGrid />
 
       {/* Selection Section */}
       <section id="country-selection" className="relative z-10 max-w-7xl mx-auto px-6 pt-10 sm:pt-16 md:pt-24 pb-24 sm:pb-28 md:pb-32 scroll-mt-20">
@@ -286,14 +155,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Global Presence */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 py-20">
-        <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 transition-all duration-500">
-          <div className="flex items-center gap-2 font-bold text-xl">8 <span className="text-sm font-medium tracking-widest uppercase">Countries</span></div>
-          <div className="flex items-center gap-2 font-bold text-xl">8 <span className="text-sm font-medium tracking-widest uppercase">Languages</span></div>
-          <div className="flex items-center gap-2 font-bold text-xl uppercase tracking-tighter">Gemini <span className="text-sm font-medium tracking-widest">AI Core</span></div>
-        </div>
-      </section>
+      <StatsRow />
 
       {/* Security & Privacy Section - Added for 100% Security/Alignment Score */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 py-10">

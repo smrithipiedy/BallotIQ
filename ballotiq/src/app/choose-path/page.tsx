@@ -14,18 +14,18 @@ import Image from 'next/image';
  */
 export default function ChoosePathPage() {
   const router = useRouter();
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [selectedCountry] = useState<Country | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = sessionStorage.getItem('ballotiq_country');
+    return stored ? (JSON.parse(stored) as Country) : null;
+  });
+  const [isReady] = useState(() => typeof window !== 'undefined');
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('ballotiq_country');
-    if (stored) {
-      setSelectedCountry(JSON.parse(stored) as Country);
-      setIsReady(true);
-      return;
+    if (!selectedCountry && typeof window !== 'undefined') {
+      router.push('/');
     }
-    router.push('/');
-  }, [router]);
+  }, [selectedCountry, router]);
 
   /**
    * Navigates the user to the diagnostic assessment flow.
@@ -61,6 +61,7 @@ export default function ChoosePathPage() {
 
   return (
     <div className="h-[100dvh] bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 flex flex-col relative overflow-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">Skip to main content</a>
       {/* Navigation Header */}
       <nav className="w-full p-3 sm:p-4 md:p-6 flex items-center justify-between z-50 bg-gray-950/50 backdrop-blur-md border-b border-white/5 flex-shrink-0">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -81,7 +82,7 @@ export default function ChoosePathPage() {
       </nav>
 
       {/* Main Content */}
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-3 overflow-hidden">
+      <div id="main-content" tabIndex={-1} className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-3 overflow-hidden outline-none">
         <div className="h-full max-w-4xl w-full text-center flex flex-col justify-between gap-3 sm:gap-5 md:gap-5 animate-in slide-in-from-bottom-8 duration-700">
           <div className="space-y-2.5 sm:space-y-4 md:space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs sm:text-sm font-medium mb-4">

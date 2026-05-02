@@ -15,10 +15,11 @@ async function checkModels() {
   for (const m of models) {
     try {
       const model = genAI.getGenerativeModel({ model: m });
-      const result = await model.generateContent('Hi');
+      await model.generateContent('Hi');
       console.log(`✅ ${m}: OK`);
-    } catch (err: any) {
-      console.log(`❌ ${m}: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`❌ ${m}: ${message}`);
     }
   }
 }

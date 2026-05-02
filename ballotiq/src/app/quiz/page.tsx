@@ -8,14 +8,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Zap, MapPin } from 'lucide-react';
-import type { ElectionStep, UserContext } from '@/types';
+import type { UserContext } from '@/types';
 import { useQuiz } from '@/hooks/useQuiz';
 import { useProgress } from '@/hooks/useProgress';
 import { generatePerformanceInsight } from '@/lib/gemini/client';
 import { logQuizComplete } from '@/lib/firebase/analytics';
 import { getFallbackGuide } from '@/lib/gemini/fallback';
 import QuizCard from '@/components/Quiz/QuizCard';
-import ScoreBoard from '@/components/Quiz/ScoreBoard';
+import QuizComplete from '@/components/Quiz/QuizComplete';
+import QuizWarningModal from '@/components/Quiz/QuizWarningModal';
 import ProgressDots from '@/components/Quiz/ProgressDots';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import LanguageSelector from '@/components/ui/LanguageSelector';
@@ -33,14 +34,10 @@ export default function QuizPage() {
     return stored ? (JSON.parse(stored) as UserContext) : null;
   });
 
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(() => typeof window !== 'undefined');
   const [insight, setInsight] = useState('');
   const [showWarning, setShowWarning] = useState(false);
   const [proceedAnyway, setProceedAnyway] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const { progress, completedSteps: completedStepIds } = useProgress(
     userContext?.countryCode || 'IN',
@@ -97,6 +94,7 @@ export default function QuizPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">Skip to main content</a>
       {/* Header — matches learn page style */}
       <header className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-4">
@@ -133,7 +131,7 @@ export default function QuizPage() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div id="main-content" tabIndex={-1} className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 outline-none">
         <ErrorBoundary componentName="QuizPage">
           {loading ? (
             <div className="space-y-6">
@@ -141,12 +139,12 @@ export default function QuizPage() {
               <LoadingSkeleton lines={4} />
             </div>
           ) : phase === 'complete' ? (
-            <ScoreBoard
+            <QuizComplete
               score={score}
               total={questions.length}
               results={results}
               knowledgeLevel={userContext.knowledgeLevel}
-              performanceInsight={insight}
+              insight={insight}
               countryName={userContext.countryName}
             />
           ) : currentQuestion ? (
@@ -185,38 +183,11 @@ export default function QuizPage() {
         </ErrorBoundary>
       </div>
 
-      {/* Completion Warning Modal */}
-      {showWarning && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-md bg-[#0f172a] border border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-center space-y-8 animate-in zoom-in duration-500">
-            <div className="w-20 h-20 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto border border-amber-500/20">
-              <Zap className="w-10 h-10 text-amber-400" />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-2xl font-black text-white leading-tight">
-                <TranslatedText text="Modules Not Finished" />
-              </h2>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                <TranslatedText text="You haven't completed all learning modules yet. Finishing them first will help you score better!" />
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => router.push(`/learn/${userContext.countryCode.toLowerCase()}/`)}
-                className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all uppercase text-xs tracking-widest"
-              >
-                <TranslatedText text="Proceed Learning" />
-              </button>
-              <button
-                onClick={() => { setShowWarning(false); setProceedAnyway(true); }}
-                className="w-full py-4 bg-white/5 text-gray-400 font-bold rounded-2xl hover:bg-white/10 transition-all text-xs tracking-widest"
-              >
-                <TranslatedText text="Take Quiz Anyway" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <QuizWarningModal
+        isOpen={showWarning}
+        onProceed={() => router.push(`/learn/${userContext.countryCode.toLowerCase()}/`)}
+        onStay={() => { setShowWarning(false); setProceedAnyway(true); }}
+      />
 
       <BottomNav activeTab="quiz" countryCode={userContext.countryCode} />
     </div>

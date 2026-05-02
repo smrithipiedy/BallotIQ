@@ -113,7 +113,8 @@ export function isQuizQuestionsArray(data: unknown): data is QuizQuestion[] {
       typeof q['correctIndex'] === 'number' &&
       q['correctIndex'] >= 0 &&
       q['correctIndex'] <= QUIZ_OPTIONS_COUNT - 1 &&
-      typeof q['explanation'] === 'string'
+      typeof q['explanation'] === 'string' &&
+      typeof q['relatedStepId'] === 'string'
     );
   });
 }

@@ -43,6 +43,7 @@ export function useAssessment(
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userContext, setUserContext] = useState<UserContext | null>(null);
 
+  /** Processes the user's answer and advances to the next question or phase. */
   const answerQuestion = useCallback(async (answer: boolean | number | string) => {
     const updated = { ...answers };
     const countryData = getCountryByCode(countryCode);
@@ -125,6 +126,7 @@ export function useAssessment(
     }
   }, [answers, currentQuestion, phase, countryCode, countryName, sessionId]);
 
+  /** Returns to the previous question in the assessment sequence. */
   const goBack = useCallback(() => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);

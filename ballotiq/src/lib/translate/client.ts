@@ -7,6 +7,7 @@
 import type { SupportedLanguage } from '@/types';
 import { logger } from '@/lib/logger';
 import { withTrace } from '@/lib/firebase/performance';
+import { checkRateLimit, incrementUsage } from '@/lib/security/rateLimit';
 
 /** In-memory translation cache: key = `${text}:${lang}` */
 const translationCache = new Map<string, string>();
@@ -31,7 +32,8 @@ interface TranslationResponse {
  */
 export async function translateText(
   text: string,
-  targetLang: SupportedLanguage
+  targetLang: SupportedLanguage,
+  sessionId?: string
 ): Promise<string> {
   return withTrace('translateText', { targetLang }, async () => {
     if (targetLang === 'en' || !text.trim()) return text;
@@ -44,6 +46,9 @@ export async function translateText(
       logger.error('API Key is missing. Set NEXT_PUBLIC_TRANSLATE_API_KEY.', null, { component: 'TranslateClient' });
       return text;
     }
+
+    const limit = await checkRateLimit(sessionId ?? 'translate', 'translate');
+    if (!limit.allowed) return text;
 
     try {
       const response = await fetch(`${BASE_URL}?key=${API_KEY}`, {
@@ -66,6 +71,7 @@ export async function translateText(
 
       const translated = data.data.translations[0].translatedText;
       translationCache.set(cacheKey, translated);
+      await incrementUsage(sessionId ?? 'translate', 'translate');
       return translated;
     } catch (error) {
       logger.error('Translation failed', error, { component: 'TranslateClient' });
@@ -79,7 +85,8 @@ export async function translateText(
  */
 export async function translateBatch(
   texts: string[],
-  targetLang: SupportedLanguage
+  targetLang: SupportedLanguage,
+  sessionId?: string
 ): Promise<string[]> {
   return withTrace('translateBatch', { targetLang, count: String(texts.length) }, async () => {
     if (targetLang === 'en' || texts.length === 0) return texts;
@@ -100,6 +107,9 @@ export async function translateBatch(
     if (uncached.length === 0) return results;
 
     if (!API_KEY) return results;
+
+    const limit = await checkRateLimit(sessionId ?? 'translate', 'translate');
+    if (!limit.allowed) return results;
 
     try {
       const response = await fetch(`${BASE_URL}?key=${API_KEY}`, {
@@ -126,6 +136,7 @@ export async function translateBatch(
         results[entry.index] = t.translatedText;
         translationCache.set(`${entry.text}:${targetLang}`, t.translatedText);
       });
+      await incrementUsage(sessionId ?? 'translate', 'translate');
     } catch (error) {
       logger.error('Batch translation failed', error, { component: 'TranslateClient' });
     }

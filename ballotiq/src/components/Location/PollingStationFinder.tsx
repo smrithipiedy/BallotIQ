@@ -6,11 +6,11 @@
  * Falls back to official election commission link if Maps unavailable.
  */
 
-import { useEffect, useRef, useState } from 'react';
 import { LocateFixed, MapPin } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import TranslatedText from '@/components/ui/TranslatedText';
 import type { Country } from '@/types';
+import { useGoogleMap } from '@/hooks/useGoogleMap';
 
 interface PollingStationFinderProps {
   country: Country;
@@ -18,126 +18,14 @@ interface PollingStationFinderProps {
 }
 
 export default function PollingStationFinder({ country, fullScreen = false }: PollingStationFinderProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [pollingStations, setPollingStations] = useState<google.maps.places.Place[]>([]);
-
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey || !mapRef.current) {
-      setError('Maps unavailable');
-      return;
-    }
-
-    let cancelled = false;
-
-    async function initMap() {
-      try {
-        const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
-
-        setOptions({
-          key: apiKey!,
-          v: 'weekly',
-          libraries: ['places'],
-        });
-
-        const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
-        const { Place, SearchNearbyRankPreference } = await importLibrary('places') as google.maps.PlacesLibrary;
-        const { AdvancedMarkerElement, PinElement } = await importLibrary('marker') as google.maps.MarkerLibrary;
-
-        if (cancelled || !mapRef.current) return;
-
-        const position = await getCurrentPosition(country.code);
-        if (!cancelled) setUserPosition(position);
-
-        const map = new Map(mapRef.current, {
-          center: position,
-          zoom: 14,
-          mapId: 'BALLOTIQ_MAP_ID',
-          mapTypeControl: false,
-          streetViewControl: false,
-          clickableIcons: false, // Disable clicks on standard POIs
-          fullscreenControl: false,
-          disableDefaultUI: false,
-          zoomControl: true,
-        });
-        mapInstanceRef.current = map;
-
-        // User location marker
-        const userPin = new PinElement({
-          background: '#3b82f6',
-          borderColor: '#ffffff',
-          glyphColor: '#ffffff',
-          scale: 1,
-        });
-
-        new AdvancedMarkerElement({
-          position,
-          map,
-          title: 'Your Location',
-          content: userPin.element,
-        });
-
-        // New Places API Search - Specific for election context
-        const searchTypes = country.code === 'IN'
-          ? ['government_office', 'local_government_office', 'police']
-          : ['government_office', 'local_government_office'];
-
-        const request = {
-          fields: ['displayName', 'location', 'formattedAddress', 'id'],
-          locationRestriction: {
-            center: position,
-            radius: 10000,
-          },
-          includedPrimaryTypes: searchTypes,
-          maxResultCount: 15,
-          rankPreference: SearchNearbyRankPreference.POPULARITY,
-          language: 'en',
-        };
-
-        const { places } = await Place.searchNearby(request);
-
-        if (places && places.length > 0) {
-          setPollingStations(places);
-          places.forEach((place) => {
-            if (place.location) {
-              const officePin = new PinElement({
-                background: '#10b981',
-                borderColor: '#ffffff',
-                glyphColor: '#ffffff',
-                scale: 0.8,
-              });
-
-              new AdvancedMarkerElement({
-                position: place.location,
-                map,
-                title: place.displayName ?? 'Election Office',
-                content: officePin.element,
-              });
-            }
-          });
-        }
-
-        if (!cancelled) setMapLoaded(true);
-
-      } catch {
-        if (!cancelled) setError('Could not load map');
-      }
-    }
-
-    const currentMapRef = mapRef.current;
-    initMap();
-    return () => {
-      cancelled = true;
-      mapInstanceRef.current = null;
-      if (currentMapRef) {
-        currentMapRef.innerHTML = '';
-      }
-    };
-  }, [country.code]);
+  const {
+    mapRef,
+    mapInstanceRef,
+    mapLoaded,
+    error,
+    userPosition,
+    pollingStations,
+  } = useGoogleMap(country.code);
 
   if (error) {
     return (
@@ -247,31 +135,4 @@ export default function PollingStationFinder({ country, fullScreen = false }: Po
       </div>
     </ErrorBoundary>
   );
-}
-
-function getCurrentPosition(countryCode: string): Promise<{ lat: number; lng: number }> {
-  const DEFAULTS: Record<string, { lat: number; lng: number }> = {
-    IN: { lat: 28.6139, lng: 77.209 }, // New Delhi
-    US: { lat: 38.9072, lng: -77.0369 }, // Washington DC
-    GB: { lat: 51.5074, lng: -0.1278 }, // London
-    AU: { lat: -35.2809, lng: 149.1300 }, // Canberra
-    SA: { lat: 24.7136, lng: 46.6753 }, // Riyadh
-    FR: { lat: 48.8566, lng: 2.3522 }, // Paris
-    DE: { lat: 52.5200, lng: 13.4050 }, // Berlin
-    BR: { lat: -15.7975, lng: -47.8919 }, // Brasilia
-    CA: { lat: 45.4215, lng: -75.6972 }, // Ottawa
-  };
-
-  const defaultPos = DEFAULTS[countryCode.toUpperCase()] || { lat: 0, lng: 0 };
-
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      resolve(defaultPos);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(defaultPos)
-    );
-  });
 }

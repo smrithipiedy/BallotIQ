@@ -34,8 +34,8 @@ export function useQuiz(
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<QuizResult[]>([]);
-  const [phase, setPhase] = useState<QuizPhase>('loading');
-  const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState<QuizPhase>(completedSteps.length === 0 ? 'active' : 'loading');
+  const [loading, setLoading] = useState(completedSteps.length !== 0);
   const startTimeRef = useRef<number>(0);
   const fetchedRef = useRef(false);
 
@@ -53,8 +53,6 @@ export function useQuiz(
     }
 
     if (completedSteps.length === 0) {
-      setLoading(false);
-      setPhase('active');
       return;
     }
 
@@ -83,6 +81,7 @@ export function useQuiz(
     loadQuiz();
   }, [completedSteps, userContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Records the user's answer for the current question and calculates performance metrics. */
   const answerQuestion = useCallback((selectedIndex: number) => {
     if (!questions[currentIndex]) return;
     const q = questions[currentIndex];
@@ -97,6 +96,7 @@ export function useQuiz(
     setPhase('reviewing');
   }, [questions, currentIndex]);
 
+  /** Advances the quiz to the next question or transitions to the completion phase. */
   const nextQuestion = useCallback(() => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);

@@ -33,7 +33,12 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     if (language === 'en' || !text) return text;
     setIsTranslating(true);
     try {
-      return await translateText(text, language);
+      let sessionId: string | undefined;
+      if (typeof window !== 'undefined') {
+        const stored = sessionStorage.getItem('ballotiq_context');
+        if (stored) sessionId = JSON.parse(stored).sessionId;
+      }
+      return await translateText(text, language, sessionId);
     } finally {
       setIsTranslating(false);
     }
@@ -43,7 +48,12 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     if (language === 'en' || texts.length === 0) return texts;
     setIsTranslating(true);
     try {
-      return await translateBatch(texts, language);
+      let sessionId: string | undefined;
+      if (typeof window !== 'undefined') {
+        const stored = sessionStorage.getItem('ballotiq_context');
+        if (stored) sessionId = JSON.parse(stored).sessionId;
+      }
+      return await translateBatch(texts, language, sessionId);
     } finally {
       setIsTranslating(false);
     }

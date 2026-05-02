@@ -55,4 +55,22 @@ describe('getFallbackGuide', () => {
     expect(inSteps![0].title).toBe(usSteps![0].title); // Same first step title
     expect(inSteps![1].title).not.toBe(usSteps![1].title); // Different second step
   });
+
+  it('returns steps for GB beginner', () => {
+    const steps = getFallbackGuide('GB', 'beginner');
+    expect(steps).toBeDefined();
+    expect(steps!.length).toBeGreaterThan(0);
+  });
+
+  it('returns steps for FR beginner', () => {
+    const steps = getFallbackGuide('FR', 'beginner');
+    expect(steps).toBeDefined();
+    expect(steps!.length).toBeGreaterThan(0);
+  });
+
+  it('returns steps for DE beginner', () => {
+    const steps = getFallbackGuide('DE', 'beginner');
+    expect(steps).toBeDefined();
+    expect(steps!.length).toBeGreaterThan(0);
+  });
 });

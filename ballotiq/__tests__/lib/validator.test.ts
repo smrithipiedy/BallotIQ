@@ -19,7 +19,8 @@ describe('parseGeminiJSON', () => {
   });
 
   it('returns fallback when validator fails', () => {
-    const alwaysFalse = (data: unknown): data is string[] => !!data && false;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const alwaysFalse = (_?: unknown): _ is string[] => false;
     expect(parseGeminiJSON('["valid"]', alwaysFalse, fallback)).toEqual(fallback);
   });
 
@@ -34,6 +35,22 @@ describe('parseGeminiJSON', () => {
 
   it('returns fallback for empty string', () => {
     expect(parseGeminiJSON('', alwaysTrue, fallback)).toEqual(fallback);
+  });
+
+  it('logs a warning when JSON repair fails', () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+    expect(parseGeminiJSON('invalid { json', alwaysTrue, fallback)).toEqual(fallback);
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('logs a warning when type validation fails', () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const alwaysFalse = (_?: unknown): _ is string[] => false;
+    expect(parseGeminiJSON('["valid"]', alwaysFalse, fallback)).toEqual(fallback);
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
 
@@ -68,7 +85,7 @@ describe('isElectionStepsArray', () => {
 describe('isQuizQuestionsArray', () => {
   const validQ = {
     id: 'q1', question: 'Test?', options: ['A', 'B', 'C', 'D'],
-    correctIndex: 0, explanation: 'Because...',
+    correctIndex: 0, explanation: 'Because...', relatedStepId: 'step1'
   };
 
   it('validates correctly for valid array', () => {
@@ -81,6 +98,10 @@ describe('isQuizQuestionsArray', () => {
 
   it('returns false for invalid correctIndex', () => {
     expect(isQuizQuestionsArray([{ ...validQ, correctIndex: 5 }])).toBe(false);
+  });
+
+  it('returns false when relatedStepId is missing', () => {
+    expect(isQuizQuestionsArray([{ ...validQ, relatedStepId: undefined }])).toBe(false);
   });
 });
 

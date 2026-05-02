@@ -30,6 +30,7 @@ export function useTTS(sessionId: string): UseTTSReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentText, setCurrentText] = useState<string | null>(null);
 
+  /** Immediately halts all audio playback and clears the speaking state. */
   const stop = useCallback(() => {
     stopAudio();
     setIsSpeaking(false);
@@ -57,6 +58,7 @@ export function useTTS(sessionId: string): UseTTSReturn {
     };
   }, [language, stop, isSpeaking]);
 
+  /** Synthesizes and plays the provided text, handling translation and rate limits. */
   const speak = useCallback(async (text: string) => {
     const limit = await checkRateLimit(sessionId, 'tts');
     if (!limit.allowed) return;
@@ -71,11 +73,11 @@ export function useTTS(sessionId: string): UseTTSReturn {
       // Translate text if language is NOT English
       let textToSpeak = text;
       if (language !== 'en') {
-        const translated = await translateText(text, language);
+        const translated = await translateText(text, language, sessionId);
         if (translated) textToSpeak = translated;
       }
 
-      const audio = await synthesizeSpeech(textToSpeak, ttsCode);
+      const audio = await synthesizeSpeech(textToSpeak, ttsCode, sessionId);
       if (audio) {
         playAudio(audio);
         await incrementUsage(sessionId, 'tts');
@@ -99,6 +101,7 @@ export function useTTS(sessionId: string): UseTTSReturn {
 
 
 
+  /** Starts playback if stopped, or halts if currently speaking the same content. */
   const toggle = useCallback(async (text: string) => {
     if (isSpeaking && currentText === text) {
       stop();

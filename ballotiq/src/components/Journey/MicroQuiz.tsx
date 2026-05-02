@@ -5,12 +5,13 @@
  * Provides immediate reinforcement and triggers adaptive logic if needed.
  */
 
-import { CheckCircle2, XCircle, ArrowRight, Lightbulb, Loader2, Sparkles, Brain } from 'lucide-react';
+import { ArrowRight, Lightbulb, Loader2, Sparkles, Brain } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import type { MicroQuizQuestion } from '@/types';
 import TTSButton from '@/components/ui/TTSButton';
 import SafeHTML from '@/components/ui/SafeHTML';
 import TranslatedText from '@/components/ui/TranslatedText';
+import QuizOptions from './QuizOptions';
 
 interface MicroQuizProps {
   question: MicroQuizQuestion | null;
@@ -82,47 +83,13 @@ export default function MicroQuiz({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
-          {question.options.map((option, index) => {
-            const isSelected = selectedAnswer === index;
-            const isCorrectOption = index === question.correctIndex;
-            const isWrongSelection = isSelected && !isCorrectOption;
-            
-            let variantClasses = 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20';
-            
-            if (showResult) {
-              if (isCorrectOption) {
-                variantClasses = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400';
-              } else if (isWrongSelection) {
-                variantClasses = 'bg-red-500/20 border-red-500/50 text-red-400';
-              } else {
-                variantClasses = 'bg-white/5 border-white/10 text-gray-600 opacity-50';
-              }
-            }
-
-            return (
-              <button
-                key={index}
-                onClick={() => {
-                  if (!showResult) {
-                    onSubmit(index);
-                    onInteraction?.();
-                  }
-                }}
-                disabled={showResult}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all ${variantClasses} ${
-                  !showResult ? 'active:scale-[0.98]' : 'cursor-default'
-                }`}
-                aria-label={`Option ${index + 1}: ${option}`}
-                aria-pressed={isSelected}
-              >
-                <TranslatedText text={option} />
-                {showResult && isCorrectOption && <CheckCircle2 className="w-4 h-4" data-testid="check-circle" />}
-                {showResult && isWrongSelection && <XCircle className="w-4 h-4" data-testid="x-circle" />}
-              </button>
-            );
-          })}
-        </div>
+        <QuizOptions
+          question={question}
+          selectedAnswer={selectedAnswer}
+          showResult={showResult}
+          onSubmit={onSubmit}
+          onInteraction={onInteraction}
+        />
 
         {!showResult && question.hint && (
           <div className="flex flex-col items-center gap-2">

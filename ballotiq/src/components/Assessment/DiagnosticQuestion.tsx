@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { Mic, MicOff } from 'lucide-react';
+import VoiceInputButton from './VoiceInputButton';
 import { sanitizeUserInput } from '@/lib/security/sanitize';
 import TranslatedText from '@/components/ui/TranslatedText';
 import TTSButton from '@/components/ui/TTSButton';
@@ -30,7 +30,6 @@ export default function DiagnosticQuestion({
   const [textInput, setTextInput] = useState('');
   const [selectedScale, setSelectedScale] = useState<number | null>(null);
   const { language } = useTranslation();
-  
   const maxChars = 200;
 
   const sttLanguage = useMemo(
@@ -87,7 +86,6 @@ export default function DiagnosticQuestion({
       </div>
     );
   }
-
   if (questionNumber === 2) {
     const labels = ['Complete beginner', 'Mostly new', 'Somewhat familiar', 'Fairly confident', 'Very knowledgeable'];
     return (
@@ -134,8 +132,6 @@ export default function DiagnosticQuestion({
       </div>
     );
   }
-
-  // Question 3
   const charCount = textInput.length;
 
   return (
@@ -164,20 +160,11 @@ export default function DiagnosticQuestion({
             maxLength={maxChars}
             disabled={isLoading}
           />
-          <button
-            type="button"
-            onClick={isListening ? stopListening : startListening}
-            disabled={isLoading}
-            className={`absolute right-3 sm:right-4 bottom-3 sm:bottom-4 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all ${
-              isListening
-                ? 'bg-red-500/20 border-red-400/60 text-red-300'
-                : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-            aria-pressed={isListening}
-          >
-            {isListening ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </button>
+          <VoiceInputButton
+            isListening={isListening}
+            isLoading={isLoading}
+            onToggle={isListening ? stopListening : startListening}
+          />
         </div>
         <div className="px-2 min-h-5">
           {error && (

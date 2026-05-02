@@ -142,4 +142,53 @@ describe('useAdaptiveLearning', () => {
     });
     expect(result.current.adaptationActive).toBe(true);
   });
+  it('dismisses adaptation prompt and resets errors', async () => {
+    const { result } = renderHook(() => useAdaptiveLearning(mockContext, mockSteps));
+    
+    await act(async () => {
+      await result.current.handleMicroQuizResult(false, mockSteps[0], 'W1', 'C');
+      await result.current.handleMicroQuizResult(false, mockSteps[0], 'W2', 'C');
+    });
+    expect(result.current.showAdaptationPrompt).toBe(true);
+
+    act(() => {
+      result.current.dismissAdaptation();
+    });
+    expect(result.current.showAdaptationPrompt).toBe(false);
+    expect(result.current.consecutiveErrors).toBe(0);
+  });
+
+  it('does not trigger another prompt when adaptation is already active', async () => {
+    const { result } = renderHook(() => useAdaptiveLearning(mockContext, mockSteps));
+    
+    await act(async () => {
+      await result.current.handleMicroQuizResult(false, mockSteps[0], 'W1', 'C');
+      await result.current.handleMicroQuizResult(false, mockSteps[0], 'W2', 'C');
+    });
+    
+    act(() => {
+      result.current.confirmAdaptation();
+    });
+
+    await act(async () => {
+      await result.current.handleMicroQuizResult(false, mockSteps[0], 'W3', 'C');
+      await result.current.handleMicroQuizResult(false, mockSteps[0], 'W4', 'C');
+    });
+    
+    expect(result.current.showAdaptationPrompt).toBe(false);
+  });
+
+  it('does not exceed max step index on moveToNextStep', () => {
+    const { result } = renderHook(() => useAdaptiveLearning(mockContext, mockSteps));
+    
+    act(() => {
+      result.current.moveToNextStep(); // Moves to index 1
+    });
+    expect(result.current.currentStepIndex).toBe(1);
+    
+    act(() => {
+      result.current.moveToNextStep(); // Attempt to move beyond last step
+    });
+    expect(result.current.currentStepIndex).toBe(1);
+  });
 });

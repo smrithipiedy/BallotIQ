@@ -25,11 +25,16 @@ import BottomNav from '@/components/ui/BottomNav';
 /** Full-page AI assistant with context-aware responses */
 export default function AssistantPage() {
   const router = useRouter();
-  const [userContext] = useState<UserContext | null>(() => {
-    if (typeof window === 'undefined') return null;
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
     const stored = sessionStorage.getItem('ballotiq_context');
-    if (!stored) return null;
-    
+    if (!stored) {
+      router.push('/');
+      return;
+    }
+
     const ctx = JSON.parse(stored) as UserContext;
     // Hydrate missing metadata if needed
     if (!ctx.electionBody || !ctx.electionBodyUrl) {
@@ -40,18 +45,10 @@ export default function AssistantPage() {
         sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
       }
     }
-    return ctx;
-  });
-
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    if (!userContext) {
-      router.push('/');
-    } else {
-      setIsReady(true);
-    }
-  }, [userContext, router]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUserContext(ctx);
+    setMounted(true);
+  }, [router]);
 
   const completedSteps = useMemo<ElectionStep[]>(() => {
     if (!userContext) return [];
@@ -62,13 +59,13 @@ export default function AssistantPage() {
     userContext?.sessionId ?? ''
   );
 
-  if (!isReady || !userContext) return null;
+  if (!mounted || !userContext) return null;
 
   const countryInfo = getCountryByCode(userContext.countryCode);
 
   return (
     <div className="h-[100dvh] flex flex-col bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-hidden">
-      {/* Header — matches learn page style */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">Skip to main content</a>
       {/* Header — matches learn page style */}
       <header className="sticky top-0 z-50 flex-shrink-0 bg-gray-950/80 md:bg-transparent backdrop-blur-xl border-b border-white/5">
         <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
@@ -150,7 +147,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 min-h-0 overflow-hidden max-w-5xl w-full mx-auto px-4 sm:px-6 pb-20 md:pb-5">
+      <div id="main-content" tabIndex={-1} className="flex-1 min-h-0 overflow-hidden max-w-5xl w-full mx-auto px-4 sm:px-6 pb-20 md:pb-5 outline-none">
         <ErrorBoundary componentName="AssistantPage">
           <ChatWindow
             userContext={userContext}

@@ -4,6 +4,8 @@
  * Gracefully degrades when API unavailable.
  */
 
+import { checkRateLimit, incrementUsage } from '@/lib/security/rateLimit';
+
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
 
@@ -19,13 +21,17 @@ const BASE_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
  */
 export async function synthesizeSpeech(
   text: string,
-  languageCode: string
+  languageCode: string,
+  sessionId?: string
 ): Promise<string | null> {
   if (!text.trim()) return null;
 
   const cacheKey = `${text}:${languageCode}`;
   const cached = audioCache.get(cacheKey);
   if (cached) return cached;
+
+  const limit = await checkRateLimit(sessionId ?? 'tts', 'tts');
+  if (!limit.allowed) return null;
 
   try {
     const response = await fetch(`${BASE_URL}?key=${API_KEY}`, {
@@ -42,6 +48,7 @@ export async function synthesizeSpeech(
 
     const data = await response.json() as { audioContent: string };
     audioCache.set(cacheKey, data.audioContent);
+    await incrementUsage(sessionId ?? 'tts', 'tts');
     return data.audioContent;
   } catch (error) {
     console.error('[TTS] Synthesis failed:', error);

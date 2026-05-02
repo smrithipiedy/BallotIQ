@@ -8,14 +8,14 @@
  * - Shows userConfusion callout if fallback content is in use
  */
 
-import { useState } from 'react';
 import {
-  ChevronDown, ChevronUp, CheckCircle2, Clock,
-  FileText, Lightbulb, ExternalLink,
+  CheckCircle2, Clock, FileText, Lightbulb, ExternalLink,
 } from 'lucide-react';
 import type { ElectionStep, KnowledgeLevel } from '@/types';
 import TTSButton from '@/components/ui/TTSButton';
 import TranslatedText from '@/components/ui/TranslatedText';
+import { simplifyText } from '@/lib/utils/textUtils';
+import StepCardSection from './StepCardSection';
 
 interface StepCardProps {
   step: ElectionStep;
@@ -42,8 +42,6 @@ export default function StepCard({
 }: StepCardProps) {
   void _userConfusion;
   void _isFallbackContent;
-  const [showRequirements, setShowRequirements] = useState(false);
-  const [showTips, setShowTips] = useState(false);
 
   // Adaptive mode should remain detailed but easier to understand.
   const content = adaptationActive
@@ -108,65 +106,27 @@ export default function StepCard({
         />
       </div>
 
-      {/* Requirements — always expanded for active steps */}
-      {step.requirements.length > 0 && (
-        <div className="mt-5 border-t border-white/5 pt-4">
-          <button
-            onClick={() => {
-              setShowRequirements(!showRequirements);
-              onInteraction?.();
-            }}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors w-full text-left"
-            aria-expanded={showRequirements}
-            aria-controls={`req-${step.id}`}
-          >
-            <FileText className="w-4 h-4 text-blue-400" />
-            <span className="font-medium"><TranslatedText text="Requirements & Documents" /></span>
-            <span className="ml-auto text-xs text-gray-600">({step.requirements.length})</span>
-            {showRequirements ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          {showRequirements && (
-            <ul id={`req-${step.id}`} className="mt-3 space-y-2">
-              {step.requirements.map((req, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0" />
-                  <TranslatedText text={req} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <StepCardSection
+        id={`req-${step.id}`}
+        title="Requirements & Documents"
+        items={step.requirements}
+        icon={FileText}
+        iconColor="text-blue-400"
+        itemBulletColor="bg-blue-400"
+        itemTextColor="text-gray-300"
+        onInteraction={onInteraction}
+      />
 
-      {/* Tips */}
-      {step.tips.length > 0 && (
-        <div className="mt-3 border-t border-white/5 pt-4">
-          <button
-            onClick={() => {
-              setShowTips(!showTips);
-              onInteraction?.();
-            }}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors w-full text-left"
-            aria-expanded={showTips}
-            aria-controls={`tips-${step.id}`}
-          >
-            <Lightbulb className="w-4 h-4 text-amber-400" />
-            <span className="font-medium"><TranslatedText text="Expert Tips" /></span>
-            <span className="ml-auto text-xs text-gray-600">({step.tips.length})</span>
-            {showTips ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          {showTips && (
-            <ul id={`tips-${step.id}`} className="mt-3 space-y-2">
-              {step.tips.map((tip, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-amber-300/80">
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full mt-2 flex-shrink-0" />
-                  <TranslatedText text={tip} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <StepCardSection
+        id={`tips-${step.id}`}
+        title="Expert Tips"
+        items={step.tips}
+        icon={Lightbulb}
+        iconColor="text-amber-400"
+        itemBulletColor="bg-amber-400"
+        itemTextColor="text-amber-300/80"
+        onInteraction={onInteraction}
+      />
 
       {/* Official Source link — shown for intermediate/advanced */}
       {(knowledgeLevel === 'intermediate' || knowledgeLevel === 'advanced') && isActive && electionBodyUrl && (
@@ -207,7 +167,7 @@ function buildAdaptiveContent(step: ElectionStep): string {
 
   let intro = hasRichSimple
     ? simple
-    : toSimpleIndianEnglish(detailed || simple || step.description);
+    : simplifyText(detailed || simple || step.description);
 
   // Keep adaptive content substantive, never a one-liner.
   if (intro.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean).length < 3) {
@@ -228,27 +188,4 @@ function buildAdaptiveContent(step: ElectionStep): string {
   }
 
   return sections.join('\n\n');
-}
-
-function toSimpleIndianEnglish(text: string): string {
-  const cleaned = text
-    .replace(/\s+/g, ' ')
-    .replace(/\btherefore\b/gi, 'so')
-    .replace(/\bhence\b/gi, 'so')
-    .replace(/\bhowever\b/gi, 'but')
-    .replace(/\bconstituency\b/gi, 'area')
-    .replace(/\bverification\b/gi, 'checking')
-    .replace(/\beligibility\b/gi, 'who can do this')
-    .replace(/\bdisqualified\b/gi, 'not allowed')
-    .trim();
-
-  const sentences = cleaned
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-
-  if (sentences.length === 0) return text;
-
-  return sentences.join(' ');
 }

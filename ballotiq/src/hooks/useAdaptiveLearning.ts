@@ -103,7 +103,7 @@ export function useAdaptiveLearning(
     } finally {
       setIsReExplaining(false);
     }
-  }, [adaptationActive, userContext, currentStepIndex]);
+  }, [adaptationActive, userContext]);
 
   const moveToNextStep = useCallback(() => {
     if (currentStepIndex < steps.length - 1) {

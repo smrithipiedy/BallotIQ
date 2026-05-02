@@ -121,7 +121,8 @@ function isAllowedTopic(question: string, hasHistory: boolean): boolean {
     'registration', 'electoral roll', 'epic', 'evm', 'vvpat', 'commission', 'politic', 'policy',
     'government', 'governance', 'public office', 'party', 'coalition', 'ideology', 'civic',
     'representative', 'legislature', 'judiciary', 'executive', 'constitution', 'amendment',
-    'right', 'duty', 'citizen', 'participation', 'polling station', 'counting', 'result'
+    'right', 'duty', 'citizen', 'participation', 'polling station', 'counting', 'result',
+    'document', 'documents', 'id', 'identification', 'proof', 'card', 'take', 'bring'
   ];
 
   const onTopic = civicKeywords.some((k) => question.includes(k));

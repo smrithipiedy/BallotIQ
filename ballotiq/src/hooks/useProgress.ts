@@ -47,19 +47,15 @@ export function useProgress(
   countryCode: string,
   knowledgeLevel: KnowledgeLevel
 ): UseProgressReturn {
-  const [sessionId, setSessionId] = useState<string>('');
-  const [progress, setProgress] = useState<UserProgress | null>(null);
-
-  useEffect(() => {
+  const [sessionId] = useState(() => {
+    if (typeof window === 'undefined') return '';
     const stored = localStorage.getItem(SESSION_KEY);
-    if (stored) {
-      setSessionId(stored);
-    } else {
-      const newId = generateSessionId();
-      localStorage.setItem(SESSION_KEY, newId);
-      setSessionId(newId);
-    }
-  }, []);
+    if (stored) return stored;
+    const newId = generateSessionId();
+    localStorage.setItem(SESSION_KEY, newId);
+    return newId;
+  });
+  const [progress, setProgress] = useState<UserProgress | null>(null);
 
   // Restore progress on mount
   useEffect(() => {
@@ -99,6 +95,7 @@ export function useProgress(
     } catch { /* non-critical */ }
   }, []);
 
+  /** Marks a step as finished and persists the updated progress. */
   const completeStep = useCallback((stepId: string) => {
     if (!progress) return;
     if (progress.completedSteps.includes(stepId)) return;
@@ -110,6 +107,7 @@ export function useProgress(
     persist(updated);
   }, [progress, persist]);
 
+  /** Saves the outcome of a post-step micro-quiz. */
   const saveMicroQuizResult = useCallback((stepId: string, correct: boolean) => {
     if (!progress) return;
     const updated: UserProgress = {
@@ -120,16 +118,19 @@ export function useProgress(
     persist(updated);
   }, [progress, persist]);
 
+  /** Persists the final score from the certification quiz. */
   const saveQuizScore = useCallback((score: number) => {
     if (!progress) return;
     persist({ ...progress, quizScore: score, lastUpdated: new Date().toISOString() });
   }, [progress, persist]);
 
+  /** Updates the user's preferred language in the stored progress profile. */
   const updateLanguage = useCallback((lang: SupportedLanguage) => {
     if (!progress) return;
     persist({ ...progress, language: lang, lastUpdated: new Date().toISOString() });
   }, [progress, persist]);
 
+  /** Clears all learning data and reverts the session to an initial state. */
   const resetProgress = useCallback(() => {
     const initial: UserProgress = {
       sessionId, countryCode, completedSteps: [],

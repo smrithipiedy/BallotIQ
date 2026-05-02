@@ -13,9 +13,9 @@ import KnowledgeMeter from '@/components/Assessment/KnowledgeMeter';
 import { useAssessment } from '@/hooks/useAssessment';
 import { useProgress } from '@/hooks/useProgress';
 import { useTTS } from '@/hooks/useTTS';
-import { useTranslation } from '@/hooks/useTranslation';
 import LanguageSelector from '@/components/ui/LanguageSelector';
 import type { Country } from '@/types';
+import Image from 'next/image';
 
 /** Three-step diagnostic assessment page */
 export default function AssessPage() {
@@ -53,7 +53,7 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
     country.code, 
     userContext?.knowledgeLevel ?? 'beginner'
   );
-  const { language } = useTranslation();
+
   const { isSpeaking, currentText, toggle: toggleTTS } = useTTS(sessionId);
 
   useEffect(() => {
@@ -65,10 +65,11 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [phase, userContext, router, country.code]);
+  }, [phase, userContext, router, country.code, resetProgress]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-x-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">Skip to main content</a>
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -85,9 +86,12 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
         </div>
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="hidden sm:flex items-center gap-2">
-            <img 
+            <Image 
               src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`} 
               alt={`Flag of ${country.name}`} 
+              width={24}
+              height={16}
+              unoptimized
               className="w-6 h-4 object-cover rounded-sm shadow-sm"
             />
             <span className="text-sm text-gray-400">{country.name}</span>
@@ -111,7 +115,7 @@ function AssessmentFlow({ country, sessionId }: { country: Country; sessionId: s
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+      <div id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center px-6 py-12 outline-none">
         <div className="w-full max-w-lg">
           {phase === 'analyzing' || isAnalyzing ? (
             <div className="text-center space-y-6 animate-in slide-in-from-bottom-4">

@@ -9,6 +9,7 @@ interface BottomNavProps {
   countryCode: string;
 }
 
+/** Mobile-optimized persistent navigation bar for core sections. */
 export default function BottomNav({ activeTab, countryCode }: BottomNavProps) {
   const router = useRouter();
 
