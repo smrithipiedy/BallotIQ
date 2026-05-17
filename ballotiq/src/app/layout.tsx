@@ -1,4 +1,4 @@
-import { Inter } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
@@ -6,7 +6,15 @@ import { TranslationProvider } from '@/context/TranslationContext';
 import StartupDiagnostics from '@/components/ui/StartupDiagnostics';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const plusJakarta = Plus_Jakarta_Sans({ 
+  subsets: ['latin'],
+  variable: '--font-plus-jakarta',
+});
 
 export const metadata: Metadata = {
   title: 'BallotIQ — Personalized Election Education',
@@ -27,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-[#050510] text-gray-200 antialiased`}>
+      <body className={`${inter.variable} ${plusJakarta.variable} font-sans min-h-screen bg-background text-foreground antialiased bg-grain`}>
         <a 
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 

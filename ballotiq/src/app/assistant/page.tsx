@@ -1,28 +1,24 @@
 'use client';
 
-/**
- * AI Assistant page — context-aware election Q&A.
- * Full page chat with user context from assessment and learning.
- */
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MapPin } from 'lucide-react';
-import type { UserContext } from '@/types';
-import { useTTS } from '@/hooks/useTTS';
-import { getFallbackGuide } from '@/lib/gemini/fallback';
-import ChatWindow from '@/components/Assistant/ChatWindow';
-import KnowledgeMeter from '@/components/Assessment/KnowledgeMeter';
-import LanguageSelector from '@/components/ui/LanguageSelector';
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import TranslatedText from '@/components/ui/TranslatedText';
-import { getCountryByCode } from '@/lib/constants/countries';
-import type { ElectionStep } from '@/types';
+import { ArrowLeft, MapPin, Shield, Info } from 'lucide-react';
 import Image from 'next/image';
-import { useMemo } from 'react';
+
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import TranslatedText from '@/components/ui/TranslatedText';
+import LanguageSelector from '@/components/ui/LanguageSelector';
+import KnowledgeMeter from '@/components/Assessment/KnowledgeMeter';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import ChatWindow from '@/components/Assistant/ChatWindow';
 import BottomNav from '@/components/ui/BottomNav';
 
-/** Full-page AI assistant with context-aware responses */
+import type { UserContext, ElectionStep } from '@/types';
+import { useTTS } from '@/hooks/useTTS';
+import { getFallbackGuide } from '@/lib/gemini/fallback';
+import { getCountryByCode } from '@/lib/constants/countries';
+
 export default function AssistantPage() {
   const router = useRouter();
   const [userContext, setUserContext] = useState<UserContext | null>(null);
@@ -36,7 +32,6 @@ export default function AssistantPage() {
     }
 
     const ctx = JSON.parse(stored) as UserContext;
-    // Hydrate missing metadata if needed
     if (!ctx.electionBody || !ctx.electionBodyUrl) {
       const countryData = getCountryByCode(ctx.countryCode);
       if (countryData) {
@@ -45,7 +40,6 @@ export default function AssistantPage() {
         sessionStorage.setItem('ballotiq_context', JSON.stringify(ctx));
       }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUserContext(ctx);
     setMounted(true);
   }, [router]);
@@ -64,90 +58,57 @@ export default function AssistantPage() {
   const countryInfo = getCountryByCode(userContext.countryCode);
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-gray-200 selection:bg-blue-500/30 overflow-hidden">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">Skip to main content</a>
-      {/* Header — matches learn page style */}
-      <header className="sticky top-0 z-50 flex-shrink-0 bg-gray-950/80 md:bg-transparent backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-            <button
-              onClick={() => router.back()}
-              className="p-2.5 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group shadow-sm flex-shrink-0"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            </button>
-
-            <h1 className="text-base sm:text-lg font-black text-white tracking-tight leading-none whitespace-nowrap">
-              <TranslatedText text="Assistant" />
-            </h1>
-
-            <button
-              onClick={() => router.push('/#country-selection')}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer group"
-            >
-              <Image
-                src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
-                alt={`Flag of ${userContext.countryName}`}
-                width={24}
-                height={16}
-                unoptimized
-                className="w-6 h-4 object-cover rounded-sm flex-shrink-0"
-              />
-              <span className="text-sm font-bold text-white tracking-tight group-hover:text-blue-300 transition-colors">
-                <TranslatedText text={userContext.countryName} />
-              </span>
-              <div className="w-px h-3 bg-white/10 mx-1" />
-              <KnowledgeMeter level={userContext.knowledgeLevel} compact />
-            </button>
-
-            <div className="flex sm:hidden items-center gap-2">
-              <Image
-                src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
-                alt=""
-                width={20}
-                height={14}
-                className="w-5 h-3.5 object-cover rounded-sm"
-              />
-              <span className="text-sm font-bold text-white truncate max-w-[100px]">
-                <TranslatedText text={userContext.countryName} />
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
-            <button
-              onClick={() => router.push('/polling-stations')}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-400/60 text-white hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-600/30 text-xs font-black tracking-wide"
-              aria-label="Find polling stations"
-            >
-              <span className="inline-block w-2 h-2 rounded-full bg-white animate-pulse" />
-              <MapPin className="w-3.5 h-3.5" />
-              <TranslatedText text="Find Polling Stations" />
-            </button>
-            <LanguageSelector />
+    <div className="min-h-screen flex flex-col bg-background bg-grain selection:bg-indigo-500/30 overflow-hidden">
+      {/* Header */}
+      <nav className="sticky top-0 z-50 glass border-b border-white/5 px-4 h-16 sm:h-20 flex items-center justify-between">
+        <div className="flex items-center gap-4 flex-1">
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="h-10 w-10 p-0 rounded-full">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold">B</div>
+             <div className="hidden sm:block">
+                <h1 className="text-sm font-bold text-white tracking-tight leading-none font-heading">AI Assistant</h1>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Context: {userContext.countryName}</p>
+             </div>
           </div>
         </div>
-      </header>
 
-      {/* Disclaimer */}
-      <div className="flex-shrink-0 px-4 py-2 bg-amber-500/5 border-b border-amber-500/10">
-        <p className="text-[11px] text-amber-400/80 text-center max-w-2xl mx-auto">
-          <TranslatedText text="BallotIQ provides educational information only. For official guidance, visit" />{' '}
-          <a
-            href={countryInfo?.electionBodyUrl || `https://www.google.com/search?q=${encodeURIComponent(userContext.countryName + ' official election website')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-amber-300 font-bold"
-          >
-            <TranslatedText text={countryInfo?.electionBody || 'your official election body'} />
-          </a>.
-        </p>
+        <div className="flex items-center gap-4">
+           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full glass border border-white/10">
+              <Image
+                src={`https://flagcdn.com/w80/${userContext.countryCode.toLowerCase()}.png`}
+                alt={userContext.countryName}
+                width={20}
+                height={14}
+                unoptimized
+                className="object-cover rounded-sm"
+              />
+              <span className="text-xs font-bold text-white tracking-tight">{userContext.countryName}</span>
+              <div className="w-px h-3 bg-white/10 mx-1" />
+              <KnowledgeMeter level={userContext.knowledgeLevel} compact />
+           </div>
+           
+           <Button variant="glass" size="sm" onClick={() => router.push('/polling-stations')}>
+              <MapPin className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Stations</span>
+           </Button>
+           
+           <LanguageSelector />
+        </div>
+      </nav>
+
+      {/* Warning/Disclaimer bar */}
+      <div className="bg-indigo-500/5 border-b border-indigo-500/10 px-4 py-2">
+         <div className="max-w-4xl mx-auto flex items-center justify-center gap-2">
+            <Info className="w-3 h-3 text-indigo-400" />
+            <p className="text-[10px] sm:text-[11px] text-indigo-300/80">
+              Educational information only. Visit <a href={countryInfo?.electionBodyUrl} target="_blank" className="font-bold underline hover:text-indigo-200">{countryInfo?.electionBody || 'Official Site'}</a> for legal guidance.
+            </p>
+         </div>
       </div>
 
-      {/* Chat area */}
-      <div id="main-content" tabIndex={-1} className="flex-1 min-h-0 overflow-hidden max-w-5xl w-full mx-auto px-4 sm:px-6 pb-20 md:pb-5 outline-none">
+      <main className="flex-1 flex flex-col relative z-10 max-w-5xl w-full mx-auto px-4 md:px-6">
         <ErrorBoundary componentName="AssistantPage">
           <ChatWindow
             userContext={userContext}
@@ -157,8 +118,11 @@ export default function AssistantPage() {
             onSpeak={toggleTTS}
           />
         </ErrorBoundary>
+      </main>
+
+      <div className="md:hidden">
+         <BottomNav activeTab="assistant" countryCode={userContext.countryCode} />
       </div>
-      <BottomNav activeTab="assistant" countryCode={userContext.countryCode} />
     </div>
   );
 }
