@@ -1,7 +1,6 @@
 # BallotIQ 🗳️
 
-An adaptive AI tutor & assistant that helps users understand their country's election process — personalized to their knowledge level, translated into their language, and spoken aloud in their voice. 
-- Built for **PromptWars Virtual — Week 2** 
+An adaptive AI tutor & assistant that helps users understand their country's election process — personalized to their knowledge level, translated into their language, and spoken aloud in their voice.
 
 ---
 
@@ -31,26 +30,6 @@ The entire platform — every label, button, content block, and AI response — 
 | **Google Maps Places API** | Country selector autocomplete + polling station finder |
 
 Removing any one of these breaks the app. Each is load-bearing.
-
----
-
-## How the prompts evolved
-
-Started with basic country + question prompts. Responses were generic.
-
-Added a `UserContext` object — knowledge level, main confusion, completed steps, adaptation status — and passed it to every Gemini call. Responses became meaningfully different between a beginner and an advanced user asking the same question.
-
-Switched all structured outputs to JSON-only with explicit instructions and no markdown fences. Built a `validator.ts` with type guards on every response so malformed AI output never crashes the app.
-
-Early builds hit rate limits because multiple Gemini calls fired simultaneously on page load. Fixed with a concurrency limiter (max 2 concurrent) and exponential backoff before falling through to cached or static content.
-
----
-
-## What GenAI handled vs. what I designed
-
-**GenAI:** Personalized election guides for 8 countries across 3 knowledge levels, micro-quiz generation, concept re-explanation using analogies for beginners and deeper detail for advanced users, final quiz questions based on each user's actual completed steps, and the audit prompt that stress-tested the entire codebase against spec.
-
-**Me:** The two-mode entry point (Guided vs. Open Chat), the three-tier fallback architecture, the `UserContext` schema, the Adaptation Mode trigger logic, the security layer (sanitization + rate limiting + Firestore rules), and the UI direction.
 
 ---
 
@@ -94,5 +73,5 @@ Deployed on **Google Cloud Run**.
 
 ---
 
-*Non-partisan • Educational only • Powered by Google Services*
-*Built with ❤️ for PromptWars Virtual — Empowering voters through intelligence.*
+*Non-partisan • Educational only*
+*Built with ❤️ — Empowering voters through intelligence.*
