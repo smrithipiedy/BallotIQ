@@ -7,22 +7,30 @@ assignees: ''
 
 ---
 
-**Description of the feature**
-<!-->
+## Description of the feature
+
+
+<!--
 A clear and concise description of what the feature is. Ex. It would be good to have a navigation bar [...]
 -->
 
-**Solution to follow**
+## Solution to follow
+
+
 <!--
 A clear and concise description of what you want to reproduce.
 -->
 
-**Suggest tags for this issue**
+## Suggest tags for this issue
+
+
 <!--
 set of tags like enhancement, question, feature etc 
 -->
 
-**Additional context**
+## Additional context
+
+
 <!--
 Add any other context about the feature request here.
 
