@@ -8,10 +8,11 @@ assignees: ''
 ---
 
 ## Describe the bug
+
+
 <!-- A clear and concise description of what the bug is.-->
 
 ## Steps To Reproduce
-Steps to reproduce the behavior:
 
 
 <!--1. Go to '...'
@@ -26,10 +27,21 @@ Steps to reproduce the behavior:
 <!-- A clear and concise description of what you expected to happen.-->
 
 ## Preview
+
+
 <!-- If applicable, add screenshots or screen recordings to help explain your problem.-->
 
 ## Additional context
+
+
 <!-- Add any other context about the problem here.-->
+
+## Related Issues
+
+
+<!--
+Add links of parent or sub issues, Incase of multiple sub issues, create a checklst of which of them is solved
+-->
 
 <!--
 IMP: 
