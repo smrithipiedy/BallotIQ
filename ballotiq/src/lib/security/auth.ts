@@ -42,8 +42,8 @@ export async function verifyAuthToken(req: NextRequest) {
  * @param handler The API route handler function
  * @returns A wrapped API route handler
  */
-export function withAuth(handler: (req: NextRequest, ...args: any[]) => Promise<NextResponse>) {
-  return async (req: NextRequest, ...args: any[]) => {
+export function withAuth(handler: (req: NextRequest, ...args: unknown[]) => Promise<Response>) {
+  return async (req: NextRequest, ...args: unknown[]) => {
     // Check if the request is state-mutating
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       const decodedToken = await verifyAuthToken(req);

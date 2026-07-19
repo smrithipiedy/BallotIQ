@@ -18,7 +18,7 @@ interface SafeHTMLProps {
 /** Renders sanitized and translated HTML content safely */
 export default function SafeHTML({ html, className = '' }: SafeHTMLProps) {
   const { translate, language } = useTranslation();
-  const [processedHTML, setProcessedHTML] = useState(html);
+  const [processedHTML, setProcessedHTML] = useState(() => sanitizeAIResponse(html));
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {

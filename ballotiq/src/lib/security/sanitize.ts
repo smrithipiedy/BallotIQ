@@ -3,15 +3,17 @@
  * and AI-generated content before rendering.
  * Prevents XSS attacks and prompt injection.
  */
-// Lazy load DOMPurify only on client-side to prevent Next.js SSR / JSDOM bundle resolution errors
+// Lazy load DOMPurify synchronously on client-side to prevent Next.js SSR / JSDOM bundle resolution errors and race conditions
 type DOMPurifyType = { sanitize: (input: string, config?: Record<string, unknown>) => string } | null;
 let DOMPurifyInstance: DOMPurifyType = null;
 if (typeof window !== "undefined") {
-  void import("isomorphic-dompurify").then((mod) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("isomorphic-dompurify");
     DOMPurifyInstance = (mod.default || mod) as DOMPurifyType;
-  }).catch((err: unknown) => {
+  } catch (err: unknown) {
     console.error("Failed to load isomorphic-dompurify on client:", err);
-  });
+  }
 }
 
 /** Maximum allowed length for user input */
