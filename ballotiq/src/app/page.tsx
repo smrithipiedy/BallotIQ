@@ -398,7 +398,7 @@ export default function HomePage() {
                   <TranslatedText text="About" />
                 </a>
                 <a
-                  href="#"
+                  href="/privacy-policy"
                   className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white transition-colors duration-200"
                 >
                   <TranslatedText text="Privacy Policy" />
