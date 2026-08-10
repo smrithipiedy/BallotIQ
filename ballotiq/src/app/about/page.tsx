@@ -133,9 +133,9 @@ export default function AboutPage() {
 
         {/* Bottom accent bar, matching footer's Secure / Non-partisan / AI Powered strip */}
         <div className="pt-8 sm:pt-10 flex flex-wrap justify-center gap-4 lg:gap-6 text-[10px] font-medium uppercase tracking-widest">
-          <span className="text-blue-400/70">Secure</span>
-          <span className="text-green-400/70">Non-partisan</span>
-          <span className="text-purple-400/70">AI Powered</span>
+          <span className="text-blue-400/70"><TranslatedText text="Secure" /></span>
+          <span className="text-green-400/70"><TranslatedText text="Non-partisan" /></span>
+          <span className="text-purple-400/70"><TranslatedText text="AI Powered" /></span>
         </div>
       </main>
     </div>
