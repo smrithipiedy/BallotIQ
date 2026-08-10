@@ -113,7 +113,7 @@ export default function HomePage() {
                   }}
                   className="text-xs sm:text-sm font-semibold text-red-400 hover:text-red-300 transition-colors px-3 sm:px-4 py-2 rounded-full"
                 >
-                  Logout
+                  <TranslatedText text="Logout" />
                 </button>
               </div>
             ) : (
@@ -121,7 +121,7 @@ export default function HomePage() {
                 onClick={() => setShowAuthModal(true)}
                 className="text-xs sm:text-sm font-semibold text-gray-300 hover:text-white transition-colors px-3 sm:px-4 py-2 rounded-full"
               >
-                Sign In
+                <TranslatedText text="Sign In" />
               </button>
             )}
           </div>
@@ -420,13 +420,13 @@ export default function HomePage() {
             </p>
             <div className="flex gap-4 lg:gap-6 text-[10px] font-medium uppercase tracking-widest flex-wrap justify-center">
               <span className="text-blue-500/80 dark:text-blue-400/60">
-                Secure
+                <TranslatedText text="Secure" />
               </span>
               <span className="text-green-500/80 dark:text-green-400/60">
-                Non-partisan
+                <TranslatedText text="Non-partisan" />
               </span>
               <span className="text-purple-500/80 dark:text-purple-400/60">
-                AI Powered
+                <TranslatedText text="AI Powered" />
               </span>
             </div>
           </div>
